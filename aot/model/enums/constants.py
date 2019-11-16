@@ -1,0 +1,2 @@
+HT_AOE2_HD = 3
+HT_AOE2_DE = 5
