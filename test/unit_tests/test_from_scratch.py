@@ -1,6 +1,5 @@
 import unittest
 
-from test.compare import compare_scenario_files
 from aot.utilities.configuration import Configuration
 from aot import Scenario, Size
 from aot.model.enums import constants

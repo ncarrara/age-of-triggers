@@ -8,4 +8,4 @@ C = Configuration("config.json")
 logging.basicConfig(level=logging.DEBUG)
 
 scn = Scenario(header_type=constants.HT_AOE2_DE, size=Size.GIANT)
-scn.load(C.test_path_scenario, "giant_de")
+scn.load(C.game_path_scenario, "debug_de")

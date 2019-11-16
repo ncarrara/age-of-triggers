@@ -2,7 +2,6 @@ from aot.model.enums import *
 
 
 class Tile:
-
     """Tile class provide basic information about one tile from
         map tiles. You are able to manipulate with basic paramaters
         as Type, Elevation or Unknown. It has also X and Y paramters,
@@ -36,7 +35,7 @@ class Tile:
     def y(self):
         return self.__r
 
-    def __init__(self, row, col, type=0, elevation=0, unknown=0):
+    def __init__(self, row, col, type=0, elevation=0, unknown=0,unknown1 = 255,unknown2=255, layer_type=255, is_layering=255):
         """create Tile
 
         Args:
@@ -49,18 +48,26 @@ class Tile:
         self.type = type
         self.elevation = elevation
         self.unknown = unknown
+        self.unknown1 = unknown1
+        self.unknown2 = unknown2
         self.__r = row
         self.__c = col
+        self.layer_type = layer_type
+        self.is_layering = is_layering
 
     def __repr__(self):
         name = "Tile:\n"
         info = "\tX:{} Y:{}\n".format(self.__c, self.__r)
         info2 = "\televation: {}\tunknown: {}\n".format(
             self.elevation, self.unknown)
-        info3 = "\ttype: {} - {}\n".format(
-            self.type, eTile[self.type])
-        return name + info + info2 + info3
+        info3 = "\ttype: {}\n".format(self.type)
+        is_layering = "\tis_layering: {} \n".format("True" if self.is_layering==0 else "False")
+        str = name + info + info2 + info3 + is_layering
 
+        if self.is_layering == 0:
+            layer_type = "\tlayer_type: {}\n".format(self.layer_type)
+            str+=layer_type
+        return str
     def toJSON(self):
         """return JSON"""
         data = dict()

@@ -149,8 +149,8 @@ class Compress:
 
         # section: CINEMATICS
         putStr16(scenario.cinematics.intro, remove_last=False)
-        putStr16(scenario.cinematics.defeat, remove_last=False)
         putStr16(scenario.cinematics.victory, remove_last=False)
+        putStr16(scenario.cinematics.defeat, remove_last=False)
 
         # section: BACKGROUND
         putStr16(scenario.background.filename, remove_last=False)
@@ -197,13 +197,13 @@ class Compress:
 
         putUInt32(4294967197)  # Separator 0xFFFFFF9D
         for i in range(1, 17):
-            putUInt32(int(players[i]._unused_resource.gold))
-            putUInt32(int(players[i]._unused_resource.wood))
-            putUInt32(int(players[i]._unused_resource.food))
-            putUInt32(int(players[i]._unused_resource.stone))
-            putUInt32(int(players[i]._unused_resource.ore))
-            putUInt32(int(players[i]._unused_resource.padding))
-            putUInt32(int(players[i]._unused_resource.index))
+            putInt32(int(players[i]._unused_resource.gold))
+            putInt32(int(players[i]._unused_resource.wood))
+            putInt32(int(players[i]._unused_resource.food))
+            putInt32(int(players[i]._unused_resource.stone))
+            putInt32(int(players[i]._unused_resource.ore))
+            putInt32(int(players[i]._unused_resource.padding))
+            putInt32(int(players[i]._unused_resource.index))
 
         putUInt32(4294967197)  # Separator, again 0xFFFFFF9D
 
@@ -289,7 +289,7 @@ class Compress:
             putFloat(players[i].resource.wood)
             putFloat(players[i].resource.gold)
             putFloat(players[i].resource.stone)
-            putInt32(players[i].resource.ore)
+            putFloat(players[i].resource.ore)
             putInt32(players[i].resource.padding)
             putFloat(players[i].population)
 

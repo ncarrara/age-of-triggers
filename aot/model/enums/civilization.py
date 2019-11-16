@@ -20,6 +20,7 @@ class Civilization(Enum):
     AZTECS = 15
     MAYANS = 16
     HUNS = 17
+    RANDOM = 36
     # TODO others
     #
     # < civ

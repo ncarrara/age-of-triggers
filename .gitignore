@@ -8,3 +8,7 @@ aot/meta_triggers/__pycache__/
 aot/model/__pycache__/
 
 aot/utilities/__pycache__/
+
+test/__pycache__/
+
+aot/model/enums/__pycache__/

@@ -178,10 +178,11 @@ class Decoder:
         return sep
 
     def skip_separator(self):
-        sep = self.__data[self.__pntr:self.__pntr + 4]
-        self.skip(4)
+        #sep = self.__data[self.__pntr:self.__pntr + 4]
+        sep = self.getBytes(4)
+        #self.skip(4)
         if sep.hex() != "9dffffff":
-            raise Exception("decoding error, missing 9dffffff sperator, found {} instead".format(sep))
+            raise Exception("decoding error, missing 9dffffff sperator, found {} instead".format(sep.hex()))
         return sep
 
     def skip(self, size):
