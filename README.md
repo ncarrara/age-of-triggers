@@ -1,5 +1,5 @@
 # Aoe2 Meta Triggers
-This is an api for python 3.4, which can read and write Age of Empires 2 scenario map files for AOE2 HD 2013 and AOE2 Definitive Edition.
+This is an api for python 3.4. You can read and write Age of Empires 2 scenario map files for AOE2 HD 2013 and AOE2 Definitive Edition.
 
 It was initially a fork from agescx [https://github.com/dderevjanik/agescx].
 
