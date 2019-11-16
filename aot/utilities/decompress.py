@@ -113,6 +113,10 @@ class Decompress:
         for _ in range(n):
             logger.debug(decoder.get_s32())
         exit()
+    def show_next_floats(self, n, decoder):
+        for _ in range(n):
+            logger.debug(decoder.getFloat())
+        exit()
 
     def decompressData(self, bData):
         d = Decoder(bData)
@@ -423,7 +427,6 @@ class Decompress:
 
         d.skip_constant(9)  # number of unit sections, N. I've always seen = 9.
 
-
         logger.debug("-------------------------------------------------------")
         logger.debug("-------------------------------------------------------")
         logger.debug("-------------------------------------------------------")
@@ -441,61 +444,115 @@ class Decompress:
             resource.padding = self._read("P{} padding=".format(i), d.get_s32)
             players[i].population = self._read("P{} max pop ? =".format(i), d.getFloat)
 
+        if self.scenario.header_type is HT_AOE2_DE:
+            pass
+        else:
 
-        logger.debug("-------------------------------------------------------")
-        logger.debug("-------------------------------------------------------")
-        logger.debug("-------------------------------------------------------")
-        logger.debug("---------------------- UNITS SECTION ----------------------------")
-        logger.debug("-------------------------------------------------------")
-        logger.debug("-------------------------------------------------------")
-        logger.debug("-------------------------------------------------------")
-        self.show_next_bytes(2000,d)
-        for i in range(9):
-            units = self._read("units for player[{}]".format(i),d.get_u32)
-            exit()
-            for u in range(units):
-                scenario.units.new(owner=i, x=d.getFloat(), y=d.getFloat(),
-                                   unknown1=d.getFloat(), id=d.get_u32(), type=d.get_u16(),
-                                   unknown2=d.getInt8(), angle=d.getFloat(), frame=d.get_u16(),
-                                   inId=d.get_s32())
+            logger.debug("-------------------------------------------------------")
+            logger.debug("-------------------------------------------------------")
+            logger.debug("-------------------------------------------------------")
+            logger.debug("---------------------- UNITS SECTION (HD) -------------")
+            logger.debug("-------------------------------------------------------")
+            logger.debug("-------------------------------------------------------")
+            logger.debug("-------------------------------------------------------")
+
+            for i in range(9):
+                units = self._read("units for player[{}]".format(i), d.get_u32)
+                for u in range(units):
+                    scenario.units.new(owner=i, x=d.getFloat(), y=d.getFloat(),
+                                       unknown1=d.getFloat(), id=d.get_u32(), type=d.get_u16(),
+                                       unknown2=d.getInt8(), angle=d.getFloat(), frame=d.get_u16(),
+                                       inId=d.get_s32())
 
         d.skip_constant(9)  # number of plyers, again
-        exit()
+        logger.debug("-------------------------------------------------------")
+        logger.debug("-------------------------------------------------------")
+        logger.debug("-------------------------------------------------------")
+        logger.debug("---------------------- Player Data 3 Section ----------")
+        logger.debug("-------------------------------------------------------")
+        logger.debug("-------------------------------------------------------")
+        logger.debug("-------------------------------------------------------")
         for i in range(1, 9):  # only for playable players
-            players[i].constName = d.getStr16()
-            players[i].camera.x = d.getFloat()
-            players[i].camera.y = d.getFloat()
-            players[i].camera.unknown1 = d.get_s16()
-            players[i].camera.unknown2 = d.get_s16()
-            players[i].allyVictory = d.getInt8()
-            dip = d.get_u16()  # Player count for diplomacy
-            d.skip(dip * 1)  # 0 = allied, 1 = neutral, 2 = ? , 3 = enemy
+            players[i].constName = self._read("players[{}].constName".format(i), d.getStr16)
+            players[i].camera.x = self._read("players[{}].camera.x".format(i), d.getFloat)
+            players[i].camera.y = self._read("players[{}].camera.y".format(i), d.getFloat)
+            players[i].camera.unknown1 = self._read("players[{}].camera.unknown1".format(i), d.get_s16)
+            players[i].camera.unknown2 = self._read("players[{}].camera.unknown2".format(i), d.get_s16)
+            players[i].allyVictory = self._read("players[{}].allyVictory".format(i), d.getInt8)
+            players[i].dip = self._read("players[{}].dip".format(i),
+                                        d.get_u16)  # Player count for diplomacy # TODO compress
+            d.skip(players[i].dip * 1)  # 0 = allied, 1 = neutral, 2 = ? , 3 = enemy
             #  d.skip(dip*4)  # 0 = GAIA, 1 = self,
             #  2 = allied, 3 = neutral, 4 = enemy
             for j in range(9):
-                players[i].diplomacy.gaia[j] = d.get_s32()
-            players[i].color = d.get_u32()
-            unk1 = d.getFloat()
-            unk2 = d.get_u16()
-            if unk1 == 2.0:
-                d.skip(8 * 1)
-            d.skip(unk2 * 44)
-            d.skip(7 * 1)
-            d.skip(4)
-        d.skip(8)
+                players[i].diplomacy.gaia[j] = self._read("players[{}].diplomacy.gaia[{}]".format(i, j), d.get_s32)
+            players[i].color = self._read("players[{}].color".format(i), d.get_u32)
+            players[i].unk1 = self._read("players[{}].unk1".format(i), d.getFloat)  # TODO compress
+            players[i].unk2 = self._read("players[{}].unk2".format(i), d.get_u16)  # TODO compress
+            if players[i].unk1 == 2.0:
+                d.skip(8 * 1)  # TODO decompress/compress
+            d.skip(players[i].unk2 * 44)  # TODO decompress/compress
+            d.skip(7 * 1)  # TODO decompress/compress
+            d.skip(4)  # TODO decompress/compress
 
-        d.getInt8()  # unknown
+        self._read("skip after player data 3 ",lambda :d.getBytes(2))  # TODO compress
 
-        n = d.get_u32()  # number of triggers
+        self._read("unk after player data 3",d.getInt8)  # unknown # TODO compress
+
+        if self.scenario.header_type is HT_AOE2_DE:
+            logger.debug("-------------------------------------------------------")
+            logger.debug("-------------------------------------------------------")
+            logger.debug("-------------------------------------------------------")
+            logger.debug("---------------------- UNITS SECTION (DE) -------------")
+            logger.debug("-------------------------------------------------------")
+            logger.debug("-------------------------------------------------------")
+            logger.debug("-------------------------------------------------------")
+            something = self._read("something", d.getInt8)
+            for i in range(1,9):
+
+                number_of_units= self._read("number_of_units[{}]".format(i),d.get_u32)
+
+                for u in range(number_of_units):
+                    scenario.units.new(owner=i,
+                                       x=self._read("x [{}][{}]".format(i,u),d.getFloat),
+                                       y=self._read("y [{}][{}]".format(i,u),d.getFloat),
+                                       unknown1=self._read("unknown1 [{}][{}]".format(i,u),d.getFloat),
+                                       id=self._read("id [{}][{}]".format(i,u),d.get_u32),
+                                       type=self._read("type [{}][{}]".format(i,u),d.get_u16),
+                                       unknown2=self._read("unknown2 [{}][{}]".format(i,u),d.getInt8),
+                                       angle=self._read("angle [{}][{}]".format(i,u),d.getFloat),
+                                       frame=self._read("frame [{}][{}]".format(i,u),d.get_u16),
+                                       inId=self._read("inId [{}][{}]".format(i,u),d.get_s32))
+
+        if self.scenario.header_type is HT_AOE2_DE:
+            self.scenario.ukn_9_bytes_before_triggers = self._read("scenario.ukn_9_bytes_before_triggers",lambda :d.getBytes(9))
+        n = self._read("number of triggers".format(i), d.get_u32)  # number of triggers
+
         for t in range(n):
+
+            enable= self._read("enable( /{})".format(t), d.get_u32)
+            loop=self._read("loop( /{})".format(t), d.get_u32)
+            unknown1 = self._read("unknown1( /{})".format(t), d.getInt8)
+            display_as_objective = self._read("display_as_objective( /{})".format(t), d.getInt8)
+            objective_order = self._read("objective_order( /{})".format(t), d.get_u32)
+            make_header = self._read("make_header( /{})".format(t), d.get_u32)
+            if self.scenario.header_type is HT_AOE2_DE:
+                unknown3 = self._read("unknown3( /{})".format(t), d.getInt8)
+                display_on_screen = self._read("display_on_screen( /{})".format(t), d.getInt8)
+                unknown5 = self._read("unknown5( /{})".format(t), d.getInt8)
+                unknown6 = self._read("unknown6( /{})".format(t), d.getInt8)
+            trigger_description = self._read("description( /{})".format(t), d.getStr32)
+            self.show_next_bytes(100, d)
             triggers.new(
-                enable=self._read("enable( /{})".format(t), d.get_u32),
-                loop=self._read("loop( /{})".format(t), d.get_u32),
-                unknown1=self._read("unknown1( /{})".format(t), d.getInt8),
-                objective=self._read("objective( /{})".format(t), d.getInt8),
-                objectiveOrd=self._read("objectiveOrd( /{})".format(t), d.get_u32),
-                unknown2=self._read("unknown2( /{})".format(t), d.get_u32),
-                text=self._read("text( /{})".format(t), d.getStr32),
+                make_header=make_header,
+                display_on_screen= display_on_screen,
+                enable=enable,
+                loop=loop,
+                unknown1=unknown1,
+                objective=display_as_objective,
+                objectiveOrd=objective_order,
+                unknown2= unknown2,
+                text=trigger_description,
                 name=self._read("name( /{})".format(t), d.getStr32),
                 id=t
             )

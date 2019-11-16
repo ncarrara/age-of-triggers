@@ -26,10 +26,12 @@ class Trigger:
     def conditions(self):
         return self.__conditions
 
-    def __init__(self,  name="", enable=False, loop=False,
-                 objective=False, objectiveOrd=0, text="",
+    def __init__(self,  name="", enable=False, loop=False,make_header=0,
+                 objective=False, objectiveOrd=0, text="",display_on_screen=0,
                  unknown1=0, unknown2=0,id=-1):
         """Initialize examples trigger"""
+        self.make_header = make_header
+        self.display_on_screen = display_on_screen
         self.id=id
         self.name = name  # name of trigger
         self.enable = enable  # ? enabled from start
