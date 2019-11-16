@@ -1,4 +1,4 @@
-from aot.model.enums import HT_AOE2_DE,HT_AOE2_HD
+from aot.model.enums.constants import HT_AOE2_HD,HT_AOE2_DE
 from aot.utilities import *
 from aot.model import *
 import zlib
@@ -113,7 +113,6 @@ class Decompress:
         scenario = self.scenario
         players = self.scenario.players
         messages = self.scenario.messages
-        debug = self.scenario.debug
         triggers = self.scenario.triggers
 
         #########################

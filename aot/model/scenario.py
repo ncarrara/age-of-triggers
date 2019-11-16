@@ -49,7 +49,7 @@ class Scenario:
             Raises:
                 IOError: if file doesn't exits or is broken
         """
-        full_path = path + "/" + basename + "aoe2scenario"
+        full_path = path + "/" + basename + ".aoe2scenario"
         logger.debug("loading  examples at {}".format(full_path))
         self._clear()
 

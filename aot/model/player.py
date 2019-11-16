@@ -1,5 +1,6 @@
-from aot.model.enums import Age
-from aot.model.enums import Civilization
+from aot.model.enums.age import Age
+from aot.model.enums.civilization import Civilization
+from aot.utilities.configuration import Configuration
 from .resource import *
 from .ai import *
 from .diplomacy import *
@@ -94,7 +95,7 @@ class Player:
         """
         if index==2:
             self.per_names="Promisory"
-            with open("aot/model/per_p2","rb") as f:
+            with open(Configuration.C.per_path,"rb") as f:
                 self.per = f.read()
         else:
             self.per_names = per_names

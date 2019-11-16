@@ -6,7 +6,7 @@ from aot import Scenario, logging
 
 logger = logging.getLogger(__name__)
 
-C = Configuration("aot/test/configuration_de.json")
+C = Configuration("config.json")
 
 
 def read_write_and_reread(basename):

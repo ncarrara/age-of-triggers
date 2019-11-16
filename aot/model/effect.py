@@ -1,6 +1,6 @@
 from aot.model.enums.color import Color
 from aot.model.enums.effect import *
-from aot.model.enums import EnumResource
+from aot.model.enums.resource import EnumResource
 
 
 class Effect:
