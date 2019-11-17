@@ -304,22 +304,22 @@ class Compress:
         logger.debug("-------------------------------------------------------")
 
         for i in range(1, 17):  # tech count
-            put_s32(len(players[i].disabledTechs))  # todo default
+            put_u32(len(players[i].disabledTechs))  # todo default
         for i in range(1, 17):  # techs
             for t in players[i].disabledTechs:
-                put_s32(t)
+                put_u32(t)
 
         for i in range(1, 17):  # unit count
-            put_s32(len(players[i].disabledUnits))  # todo default
+            put_u32(len(players[i].disabledUnits))  # todo default
         for i in range(1, 17):  # units
             for t in players[i].disabledUnits:
-                put_s32(t)
+                put_u32(t)
 
         for i in range(1, 17):  # building count
-            put_s32(len(players[i].disabledBuildings))  # todo default
+            put_u32(len(players[i].disabledBuildings))  # todo default
         for i in range(1, 17):  # buildings
             for t in players[i].disabledBuildings:
-                put_s32(t)
+                put_u32(t)
 
         put_u32(scenario.unknown1_after_tech)
         put_u32(scenario.unknown1_after_tech)
@@ -353,11 +353,11 @@ class Compress:
 
         put_bytes(scenario.map.unk_before_water_definitions)  # todo default
 
-        put_str16(scenario.map.water_definitions)  # todo default
+        put_str16(scenario.map.water_definitions, remove_last=True)  # todo default
 
         put_bytes(scenario.map.unk_before_empty)  # todo default
 
-        put_str16(scenario.map.empty)  # todo default
+        put_str16(scenario.map.empty, remove_last=True)  # todo default
 
         put_bytes(scenario.map.unk_before_w_h)  # todo default
 
@@ -559,6 +559,8 @@ class Compress:
         put_u32(debug.error)
         if debug.included:
             put_bytes(debug.raw)
+
+        put_bytes(scenario.extra_bytes_at_the_end)
 
 
 # = open('')

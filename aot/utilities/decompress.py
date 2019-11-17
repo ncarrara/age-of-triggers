@@ -47,23 +47,21 @@ def deflate(data, compresslevel=9):
 
 class Decompress:
 
-    def __init__(self, scenario, bData, temp=None):
-        """!
-        """
+    def __init__(self, scenario, bData, path_decompressed_data=None):
         self.scenario = scenario
         self.key_counter = 0
         self.variables = {}
         start = time.time()
         headerLength = self.decompressHeader(bData)
         decompressed = self.unzip(bData[headerLength:])
-        dataLenght = self.decompressData(decompressed)
-        end = time.time() - start
-        if temp:
-            f = open(temp+'.temp', 'wb')
+        self.decompressData(decompressed)
+        if path_decompressed_data :
+            f = open(path_decompressed_data, 'wb')
             f.write(decompressed)
             f.close()
 
     def _read(self, key=None, f=None):
+        offset = self.decoder.offset()
         var = f()
         toprint = True
         if key is None:
@@ -77,11 +75,12 @@ class Decompress:
             str_var = str(var)
             if len(str_var) > 30:  # and len(str_var) < 100:
                 str_var = str_var[:15] + " [...] " + str_var[-15:]
-            logger.debug("[READING][{}] {}=<{}>".format(f.__name__, key, str_var))
+            logger.debug("[READING byte {}][{}] {}=<{}>".format(offset,f.__name__, key, str_var))
         return var
 
     def decompressHeader(self, data):
         d = Decoder(data)
+        self.decoder = d
 
         self.scenario.version = self._read("header_decompressed.examples.version", lambda: d.getAscii(length=4))
         length = self._read("header_decompressed.lenght", d.get_s32)  # header length
@@ -122,7 +121,7 @@ class Decompress:
 
     def decompressData(self, bData):
         d = Decoder(bData)
-
+        self.decoder = d
         # Shortcuts: Scenario
         scenario = self.scenario
         players = self.scenario.players
@@ -138,7 +137,7 @@ class Decompress:
         logger.debug("-------------------------------------------------------")
         logger.debug("-------------------------------------------------------")
 
-        scenario.units.nextID = self._read("units.nextID", d.get_u32)
+        self.scenario.units.nextID = self._read("units.nextID", d.get_u32)
         self.scenario.version2 = self._read("version2", d.get_float)
 
         for i in range(1, 17):
@@ -314,20 +313,20 @@ class Decompress:
         logger.debug("-------------------------------------------------------")
         logger.debug("-------------------------------------------------------")
 
-        tech_count = d.unpack('i' * 16)
+        tech_count = d.unpack('I' * 16)
         logger.debug("tech count : {}".format(tech_count))
         for i in range(1, 17):
-            players[i].disabledTechs = [d.get_s32() for _ in range(tech_count[i - 1])]
+            players[i].disabledTechs = [self._read(None,d.get_u32) for _ in range(tech_count[i - 1])]
             logger.debug("P{}={}".format(i, players[i].disabledTechs))
-        unit_count = d.unpack('i' * 16)
+        unit_count = d.unpack('I' * 16)
         logger.debug("unit_count : {}".format(unit_count))
         for i in range(1, 17):
-            players[i].disabledUnits = [d.get_s32() for _ in range(unit_count[i - 1])]
+            players[i].disabledUnits = [self._read(None,d.get_u32) for _ in range(unit_count[i - 1])]
             logger.debug("P{}={}".format(i, players[i].disabledUnits))
-        building_count = d.unpack('i' * 16)
+        building_count = d.unpack('I' * 16)
         logger.debug("building_count : {}".format(building_count))
         for i in range(1, 17):
-            players[i].disabledBuildings = [d.get_s32() for _ in range(building_count[i - 1])]
+            players[i].disabledBuildings = [self._read(None,d.get_u32) for _ in range(building_count[i - 1])]
             logger.debug("P{}={}".format(i, players[i].disabledBuildings))
 
         scenario.unknown1_after_tech = self._read("scenario.unknown1_after_tech", d.get_u32)  # unused
@@ -406,6 +405,7 @@ class Decompress:
             players[i].population = self._read("P{} max pop ? =".format(i), d.get_float)
 
         d.skip_constant(9)  # number of plyers, again
+
         logger.debug("-------------------------------------------------------")
         logger.debug("-------------------------------------------------------")
         logger.debug("-------------------------------------------------------")
@@ -422,8 +422,8 @@ class Decompress:
             players[i].allyVictory = self._read("players[{}].allyVictory".format(i), d.get_s8)
 
             players[i].dip = self._read("players[{}].dip".format(i), d.get_u16)
-            players[i].unk0 = self._read(None, lambda: d.get_bytes(
-                players[i].dip))  # 0 = allied, 1 = neutral, 2 = ? , 3 = enemy
+            players[i].unk0 = self._read(None, lambda: d.get_bytes(players[i].dip))
+            # 0 = allied, 1 = neutral, 2 = ? , 3 = enemy
 
             for j in range(9):
                 players[i].diplomacy.gaia[j] = self._read("players[{}].diplomacy.gaia[{}]".format(i, j), d.get_s32)
@@ -569,7 +569,7 @@ class Decompress:
                 "trigger[{}].effect[{}] order".format(id_trigger,e),
                 d.get_u32) for e in range(ne)]
 
-            nc = d.get_s32()  # number of conditions
+            nc = self._read("trigger[{}].number of conditions",d.get_s32)  # number of conditions
             logger.debug("PROCESSING CONDITIONS")
             logger.debug("number of conditions : {}".format(nc))
 
@@ -633,3 +633,5 @@ class Decompress:
         debug.error = self._read("debug.error",d.get_u32)
         if debug.included:
             debug.raw = self._read("debug.raw", lambda :d.get_bytes(396))  # AI DEBUG file
+
+        scenario.extra_bytes_at_the_end = self._read("scenario.extra_bytes_at_the_end",lambda :d.get_bytes(1030))
