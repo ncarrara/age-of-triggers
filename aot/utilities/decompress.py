@@ -99,10 +99,8 @@ class Decompress:
         self.scenario.datasets = [self._read("header_decompressed.dataset_{}".format(i), d.get_s32)
                                   for i in range(n_datasets)]
 
-        if self.scenario.header_type == HT_AOE2_DE:
-            self.scenario.author = self._read("author", d.getStr32)
-            self.scenario.header_unknown = self._read("examples.header_unknown", d.get_s32)
-            # exit()
+        self.scenario.author = self._read("author", d.getStr32)
+        self.scenario.header_unknown = self._read("examples.header_unknown", d.get_s32)
         return d.offset()
 
     def unzip(self, bytes):
@@ -119,7 +117,7 @@ class Decompress:
 
     def show_next_floats(self, n, decoder):
         for _ in range(n):
-            logger.debug(decoder.getFloat())
+            logger.debug(decoder.get_float())
         exit()
 
     def decompressData(self, bData):
@@ -141,7 +139,7 @@ class Decompress:
         logger.debug("-------------------------------------------------------")
 
         scenario.units.nextID = self._read("units.nextID", d.get_u32)
-        self.scenario.version2 = self._read("version2", d.getFloat)
+        self.scenario.version2 = self._read("version2", d.get_float)
 
         for i in range(1, 17):
             players[i].name = self._read("player_{}.name".format(i), lambda: d.getAscii(256))
@@ -150,23 +148,17 @@ class Decompress:
             players[i].nameID = self._read("player_{}.nameID".format(i), d.get_s32)
 
         for i in range(1, 17):  # missing player 16 because gaia is 9, then offset ?
-            if self.scenario.header_type is HT_AOE2_DE:
-                if i == 9:
-                    i = 0  # GAIA is 9th
-                if i > 9:
-                    i -= 1
+            if i == 9:
+                i = 0  # GAIA is 9th
+            if i > 9:
+                i -= 1
             players[i].active = self._read("player_{}.active".format(i), d.get_u32)
             players[i].human = self._read("player_{}.human".format(i), d.get_u32)
             players[i].civilization = self._read("player_{}.civilization".format(i), d.get_u32)
             players[i].unknown1 = self._read("player_{}.unknown1".format(i), d.get_u32)
 
-        if self.scenario.header_type is HT_AOE2_DE:
-            scenario.unknown_bytes_after_civs = self._read(" scenario.unknown_bytes_after_civs", lambda: d.getBytes(73))
-        else:
-            scenario.unknown1_compressed_header = self._read("unknown1_compressed_header", d.get_s32)  # unk1
-            scenario.unknown2_compressed_header = self._read("unknown2_compressed_header", d.get_s32)  # unk2
-            scenario.separator_at_compressed_header = self._read("separator_at_compressed_header",
-                                                                 lambda: d.getBytes(1))  # unk1
+        scenario.unknown_bytes_after_civs = self._read(" scenario.unknown_bytes_after_civs", lambda: d.getBytes(73))
+
         scenario.filename = self._read("original_filename", lambda: d.getStr16(remove_last=False))  # original filename
 
         logger.debug("-------------------------------------------------------")
@@ -232,59 +224,47 @@ class Decompress:
             scenario.iColors = self._read("scenario.iColors", d.get_s32)
             scenario.colorTable = self._read("scenario.colorTable", lambda: d.getBytes(scenario.colors * 4))
             scenario.rawData = self._read("scenario.rawData", lambda: d.getBytes(scenario.sizeImage))
-
-        if self.scenario.header_type is HT_AOE2_DE:
-            for i in range(1, 17):
-                players[i].unknown_constant = self._read("players[{}].unknown_constant".format(i), d.get_u32)
+        logger.debug("-------------------------------------------------------")
+        logger.debug("-------------------------------------------------------")
+        logger.debug("-------------------------------------------------------")
+        logger.debug("---------------------- PLAYER DATA 2-------------------")
+        logger.debug("-------------------------------------------------------")
+        logger.debug("-------------------------------------------------------")
+        logger.debug("-------------------------------------------------------")
+        for i in range(1, 17):
+            players[i].unknown_constant = self._read("players[{}].unknown_constant".format(i), d.get_u32)
 
         # section: PLAYER DATA 2
         for i in range(1, 17):
-            if self.scenario.header_type is HT_AOE2_DE:
-                if i == 9:
-                    i = 0  # GAIA is 9th
-                if i > 9:
-                    i -= 1
+            if i == 9:
+                i = 0  # GAIA is 9th
+            if i > 9:
+                i -= 1
             players[i].vc_names = self._read("player_{}.vc_names".format(i), lambda: d.getStr16(remove_last=False))
 
         for i in range(1, 17):
-            if self.scenario.header_type is HT_AOE2_DE:
-                if i == 9:
-                    i = 0  # GAIA is 9th
-                if i > 9:
-                    i -= 1
-                players[i].unknown8bytes = self._read("players[{}].unknown8bytes".format(i), lambda: d.getBytes(8))
-            f = lambda: d.getStr32(
-                remove_last=False) if self.scenario.header_type is HT_AOE2_DE else lambda: d.getStr16(remove_last=False)
-            players[i].cty_names = self._read("player_{}.cty_names".format(i), f)
+            if i == 9:
+                i = 0  # GAIA is 9th
+            if i > 9:
+                i -= 1
+            players[i].unknown8bytes = self._read("players[{}].unknown8bytes".format(i), lambda: d.getBytes(8))
+            players[i].cty_names = self._read("player_{}.cty_names".format(i), lambda: d.getStr32(remove_last=False))
 
-        if self.scenario.header_type is HT_AOE2_DE:
-            self.scenario.unk_after_civs = self._read("scenario.unk_after_civs", lambda: d.getBytes(20))
-        else:
-            for i in range(1, 17):
-                players[i].per_names = self._read("player_{}.per_names".format(i),
-                                                  lambda: d.getStr16(remove_last=False))
+        self.scenario.unk_after_civs = self._read("scenario.unk_after_civs", lambda: d.getBytes(20))
 
-            for i in range(1, 17):
-                f = d.get_u32
-                players[i].vc_per_length = self._read("player_{}.vc_per_length".format(i), f)  # Unknown 1
-                players[i].cty_per_length = self._read("player_{}.cty_per_length".format(i), f)  # Unknown 1
-                players[i].per_per_length = self._read("player_{}.per_per_length".format(i), f)
-
-                players[i].vc = self._read("player_{}.vc".format(i), lambda: d.getBytes(players[i].vc_per_length))
-                players[i].cty = self._read("player_{}.cty".format(i), lambda: d.getBytes(players[i].cty_per_length))
-                players[i].per = self._read("player_{}.per".format(i), lambda: d.getBytes(players[i].per_per_length))
-
-            for i in range(1, 17):
-                players[i].ai.type = self._read("player_{}.ai.type".format(i), d.getInt8)
-
-            self._read("skip sep after AI", d.skip_separator)  # Separator 0xFFFFFF9D
+        logger.debug("-------------------------------------------------------")
+        logger.debug("-------------------------------------------------------")
+        logger.debug("-------------------------------------------------------")
+        logger.debug("---------------------- UNUSED RESOURCES -------------------")
+        logger.debug("-------------------------------------------------------")
+        logger.debug("-------------------------------------------------------")
+        logger.debug("-------------------------------------------------------")
 
         for i in range(1, 17):
-            if self.scenario.header_type is HT_AOE2_DE:
-                if i == 9:
-                    i = 0  # GAIA is 9th
-                if i > 9:
-                    i -= 1
+            if i == 9:
+                i = 0  # GAIA is 9th
+            if i > 9:
+                i -= 1
             players[i]._unused_resource.gold = self._read("player_{}.unused_resource.gold".format(i), d.get_s32)
             players[i]._unused_resource.wood = self._read("player_{}.unused_resource.wood".format(i), d.get_s32)
             players[i]._unused_resource.food = self._read("player_{}.unused_resource.food".format(i), d.get_s32)
@@ -334,40 +314,26 @@ class Decompress:
         logger.debug("-------------------------------------------------------")
         logger.debug("-------------------------------------------------------")
         logger.debug("-------------------------------------------------------")
-        if self.scenario.header_type is HT_AOE2_DE:
-            tech_count = d.unpack('i' * 16)
-            logger.debug("tech count : {}".format(tech_count))
-            for i in range(1, 17):
-                players[i].disabledTechs = [d.get_s32() for _ in range(tech_count[i - 1])]
-                logger.debug("P{}={}".format(i, players[i].disabledTechs))
-            unit_count = d.unpack('i' * 16)
-            logger.debug("unit_count : {}".format(unit_count))
-            for i in range(1, 17):
-                players[i].disabledUnits = [d.get_s32() for _ in range(unit_count[i - 1])]
-                logger.debug("P{}={}".format(i, players[i].disabledUnits))
-            building_count = d.unpack('i' * 16)
-            logger.debug("building_count : {}".format(building_count))
-            for i in range(1, 17):
-                players[i].disabledBuildings = [d.get_s32() for _ in range(building_count[i - 1])]
-                logger.debug("P{}={}".format(i, players[i].disabledBuildings))
-        else:
-            logger.debug("tech count : {}".format(d.unpack('i' * 16)))
-            for i in range(1, 17):
-                players[i].disabledTechs = [d.get_s32() for _ in range(20)]
-                logger.debug("P{}={}".format(i, players[i].disabledTechs))
-            logger.debug("unit count : {}".format(d.unpack('i' * 16)))
-            for i in range(1, 17):
-                players[i].disabledUnits = [d.get_s32() for _ in range(30)]
-                logger.debug("P{}={}".format(i, players[i].disabledUnits))
 
-            logger.debug("building count : {}".format(d.unpack('i' * 16)))
-            for i in range(1, 17):
-                players[i].disabledBuildings = [d.get_s32() for _ in range(30)]
-                logger.debug("P{}={}".format(i, players[i].disabledBuildings))
+        tech_count = d.unpack('i' * 16)
+        logger.debug("tech count : {}".format(tech_count))
+        for i in range(1, 17):
+            players[i].disabledTechs = [d.get_s32() for _ in range(tech_count[i - 1])]
+            logger.debug("P{}={}".format(i, players[i].disabledTechs))
+        unit_count = d.unpack('i' * 16)
+        logger.debug("unit_count : {}".format(unit_count))
+        for i in range(1, 17):
+            players[i].disabledUnits = [d.get_s32() for _ in range(unit_count[i - 1])]
+            logger.debug("P{}={}".format(i, players[i].disabledUnits))
+        building_count = d.unpack('i' * 16)
+        logger.debug("building_count : {}".format(building_count))
+        for i in range(1, 17):
+            players[i].disabledBuildings = [d.get_s32() for _ in range(building_count[i - 1])]
+            logger.debug("P{}={}".format(i, players[i].disabledBuildings))
 
-        scenario.unknown1_after_tech = self._read("examples.unknown1_after_tech", d.get_s32)  # unused
-        scenario.unknown2_after_tech = self._read("examples.unknown2_after_tech", d.get_s32)  # unused
-        scenario.is_all_tech = self._read("examples.is_all_tech", d.get_s32)  # All tech
+        scenario.unknown1_after_tech = self._read("scenario.unknown1_after_tech", d.get_s32)  # unused
+        scenario.unknown2_after_tech = self._read("scenario.unknown2_after_tech", d.get_s32)  # unused
+        scenario.is_all_tech = self._read("scenario.is_all_tech", d.get_s32)  # All tech
 
         logger.debug("-------------------------------------------------------")
         logger.debug("-------------------------------------------------------")
@@ -388,47 +354,38 @@ class Decompress:
         logger.debug("-------------------------------------------------------")
         logger.debug("-------------------------------------------------------")
         logger.debug("-------------------------------------------------------")
+
         x = self._read("x_camera", d.get_s32)
         y = self._read("y_camera", d.get_s32)  # starting camera
 
         scenario.map.aiType = self._read("examples.map.aiType", d.get_u32)
 
-        if self.scenario.header_type is HT_AOE2_DE:
-            scenario.map.unk_before_water_definitions = self._read("scenario.map.unk_before_water_definitions",
-                                                                   lambda: d.getBytes(22))
-            scenario.map.water_definitions = self._read("scenario.map.water_definitions",
-                                                        lambda: d.getStr16(remove_last=False))
-            scenario.map.unk_before_empty = self._read("scenario.map.unk_before_empty", lambda: d.getBytes(2))
-            scenario.map.empty = self._read("scenario.map.empty", lambda: d.getStr16(remove_last=False))
-            scenario.map.unk_before_w_h = self._read("scenario.map.unk_before_w_h", lambda: d.getBytes(10))
-            w = self._read("w_map", d.get_s32)
+        scenario.map.unk_before_water_definitions = self._read("scenario.map.unk_before_water_definitions",
+                                                               lambda: d.getBytes(22))
 
-            h = self._read("h_map", d.get_s32)  # starting camera
+        scenario.map.water_definitions = self._read("scenario.map.water_definitions",
+                                                    lambda: d.getStr16(remove_last=False))
 
-            scenario.map.camera = x, y
-            scenario.map.resize(w, h)
+        scenario.map.unk_before_empty = self._read("scenario.map.unk_before_empty", lambda: d.getBytes(2))
 
-            for i, tile in enumerate(self.scenario.tiles):
-                tile.type = self._read(None, d.getInt8)
-                tile.elevation = self._read(None, d.getInt8)
-                tile.unknown1 = self._read(None, d.getInt8)
-                tile.unknown2 = self._read(None, d.getInt8)
-                tile.unknown3 = self._read(None, d.getInt8)
-                tile.layer_type = self._read(None, d.getInt8)
-                tile.is_layering = self._read(None, d.getInt8)  # 0 if yes
-        else:
-            scenario.unknown_bytes_before_w_h = self._read("scenario.map.unknown_bytes_before_w_h",
-                                                           lambda: d.getBytes(16))
-            w = self._read("w_map", d.get_s32)
-            h = self._read("h_map", d.get_s32)  # starting camera
+        scenario.map.empty = self._read("scenario.map.empty", lambda: d.getStr16(remove_last=False))
 
-            scenario.map.camera = x, y
-            scenario.map.resize(w, h)
+        scenario.map.unk_before_w_h = self._read("scenario.map.unk_before_w_h", lambda: d.getBytes(10))
 
-            for i, tile in enumerate(self.scenario.tiles):
-                tile.type = self._read(None, d.getInt8)
-                tile.elevation = d.getInt8()
-                tile.unknown = d.getInt8()
+        w = self._read("w_map", d.get_s32)
+        h = self._read("h_map", d.get_s32)
+
+        scenario.map.camera = x, y
+        scenario.map.resize(w, h)
+
+        for i, tile in enumerate(self.scenario.tiles):
+            tile.type = self._read(None, d.get_s8)
+            tile.elevation = self._read(None, d.get_s8)
+            tile.unknown1 = self._read(None, d.get_s8)
+            tile.unknown2 = self._read(None, d.get_s8)
+            tile.unknown3 = self._read(None, d.get_s8)
+            tile.layer_type = self._read(None, d.get_s8)
+            tile.is_layering = self._read(None, d.get_s8)  # 0 if yes
 
         d.skip_constant(9)  # number of unit sections, N. I've always seen = 9.
 
@@ -441,33 +398,13 @@ class Decompress:
         logger.debug("-------------------------------------------------------")
         for i in range(1, 9):
             resource = players[i].resource
-            resource.food = self._read("P{} food=".format(i), d.getFloat)
-            resource.wood = self._read("P{} wood=".format(i), d.getFloat)
-            resource.gold = self._read("P{} gold=".format(i), d.getFloat)
-            resource.stone = self._read("P{} stone=".format(i), d.getFloat)
-            resource.ore = self._read("P{} ore ==".format(i), d.getFloat)
+            resource.food = self._read("P{} food=".format(i), d.get_float)
+            resource.wood = self._read("P{} wood=".format(i), d.get_float)
+            resource.gold = self._read("P{} gold=".format(i), d.get_float)
+            resource.stone = self._read("P{} stone=".format(i), d.get_float)
+            resource.ore = self._read("P{} ore ==".format(i), d.get_float)
             resource.padding = self._read("P{} padding=".format(i), d.get_s32)
-            players[i].population = self._read("P{} max pop ? =".format(i), d.getFloat)
-
-        if self.scenario.header_type is HT_AOE2_DE:
-            pass
-        else:
-
-            logger.debug("-------------------------------------------------------")
-            logger.debug("-------------------------------------------------------")
-            logger.debug("-------------------------------------------------------")
-            logger.debug("---------------------- UNITS SECTION (HD) -------------")
-            logger.debug("-------------------------------------------------------")
-            logger.debug("-------------------------------------------------------")
-            logger.debug("-------------------------------------------------------")
-
-            for i in range(9):
-                units = self._read("units for player[{}]".format(i), d.get_u32)
-                for u in range(units):
-                    scenario.units.new(owner=i, x=d.getFloat(), y=d.getFloat(),
-                                       unknown1=d.getFloat(), id=d.get_u32(), type=d.get_u16(),
-                                       unknown2=d.getInt8(), angle=d.getFloat(), frame=d.get_u16(),
-                                       inId=d.get_s32())
+            players[i].population = self._read("P{} max pop ? =".format(i), d.get_float)
 
         d.skip_constant(9)  # number of plyers, again
         logger.debug("-------------------------------------------------------")
@@ -479,59 +416,65 @@ class Decompress:
         logger.debug("-------------------------------------------------------")
         for i in range(1, 9):  # only for playable players
             players[i].constName = self._read("players[{}].constName".format(i), d.getStr16)
-            players[i].camera.x = self._read("players[{}].camera.x".format(i), d.getFloat)
-            players[i].camera.y = self._read("players[{}].camera.y".format(i), d.getFloat)
+            players[i].camera.x = self._read("players[{}].camera.x".format(i), d.get_float)
+            players[i].camera.y = self._read("players[{}].camera.y".format(i), d.get_float)
             players[i].camera.unknown1 = self._read("players[{}].camera.unknown1".format(i), d.get_s16)
             players[i].camera.unknown2 = self._read("players[{}].camera.unknown2".format(i), d.get_s16)
-            players[i].allyVictory = self._read("players[{}].allyVictory".format(i), d.getInt8)
-            players[i].dip = self._read("players[{}].dip".format(i),
-                                        d.get_u16)  # Player count for diplomacy # TODO compress
-            d.skip(players[i].dip * 1)  # 0 = allied, 1 = neutral, 2 = ? , 3 = enemy
-            #  d.skip(dip*4)  # 0 = GAIA, 1 = self,
-            #  2 = allied, 3 = neutral, 4 = enemy
+            players[i].allyVictory = self._read("players[{}].allyVictory".format(i), d.get_s8)
+
+            players[i].dip = self._read("players[{}].dip".format(i), d.get_u16)
+            players[i].unk0 = self._read(None, lambda: d.getBytes(
+                players[i].dip))  # 0 = allied, 1 = neutral, 2 = ? , 3 = enemy
+
             for j in range(9):
                 players[i].diplomacy.gaia[j] = self._read("players[{}].diplomacy.gaia[{}]".format(i, j), d.get_s32)
             players[i].color = self._read("players[{}].color".format(i), d.get_u32)
-            players[i].unk1 = self._read("players[{}].unk1".format(i), d.getFloat)  # TODO compress
-            players[i].unk2 = self._read("players[{}].unk2".format(i), d.get_u16)  # TODO compress
+            players[i].unk1 = self._read("players[{}].unk1".format(i), d.get_float)
+            players[i].unk2 = self._read("players[{}].unk2".format(i), d.get_u16)
             if players[i].unk1 == 2.0:
-                d.skip(8 * 1)  # TODO decompress/compress
-            d.skip(players[i].unk2 * 44)  # TODO decompress/compress
-            d.skip(7 * 1)  # TODO decompress/compress
-            d.skip(4)  # TODO decompress/compress
+                players[i].unk3 = self._read("players[{}].unk3".format(i), lambda :d.getBytes(8))
 
-        self._read("skip after player data 3 ", lambda: d.getBytes(2))  # TODO compress
+            players[i].unk4 = self._read("players[{}].unk4".format(i), lambda: d.getBytes(players[i].unk2 * 44))
+            players[i].unk5 = self._read("players[{}].unk5".format(i), lambda: d.getBytes(7))
+            players[i].unk6 = self._read("players[{}].unk6".format(i), lambda: d.getBytes(4))
 
-        self._read("unk after player data 3", d.getInt8)  # unknown # TODO compress
+        scenario.data3_unk = self._read("scenario.data3_unk", lambda: d.getBytes(3))
 
-        if self.scenario.header_type is HT_AOE2_DE:
-            logger.debug("-------------------------------------------------------")
-            logger.debug("-------------------------------------------------------")
-            logger.debug("-------------------------------------------------------")
-            logger.debug("---------------------- UNITS SECTION (DE) -------------")
-            logger.debug("-------------------------------------------------------")
-            logger.debug("-------------------------------------------------------")
-            logger.debug("-------------------------------------------------------")
-            something = self._read("something", d.getInt8)
-            for i in range(1, 9):
+        logger.debug("-------------------------------------------------------")
+        logger.debug("-------------------------------------------------------")
+        logger.debug("-------------------------------------------------------")
+        logger.debug("---------------------- UNITS SECTION (DE) -------------")
+        logger.debug("-------------------------------------------------------")
+        logger.debug("-------------------------------------------------------")
+        logger.debug("-------------------------------------------------------")
+        scenario.unk_unit_section = self._read("scenario.unk_unit_section", d.get_s8)
+        for i in range(1, 9):
 
-                number_of_units = self._read("number_of_units[{}]".format(i), d.get_u32)
+            number_of_units = self._read("number_of_units[{}]".format(i), d.get_u32)
 
-                for u in range(number_of_units):
-                    scenario.units.new(owner=i,
-                                       x=self._read("x [{}][{}]".format(i, u), d.getFloat),
-                                       y=self._read("y [{}][{}]".format(i, u), d.getFloat),
-                                       unknown1=self._read("unknown1 [{}][{}]".format(i, u), d.getFloat),
-                                       id=self._read("id [{}][{}]".format(i, u), d.get_u32),
-                                       type=self._read("type [{}][{}]".format(i, u), d.get_u16),
-                                       unknown2=self._read("unknown2 [{}][{}]".format(i, u), d.getInt8),
-                                       angle=self._read("angle [{}][{}]".format(i, u), d.getFloat),
-                                       frame=self._read("frame [{}][{}]".format(i, u), d.get_u16),
-                                       inId=self._read("inId [{}][{}]".format(i, u), d.get_s32))
+            for u in range(number_of_units):
+                scenario.units.new(owner=i,
+                                   x=self._read("x [{}][{}]".format(i, u), d.get_float),
+                                   y=self._read("y [{}][{}]".format(i, u), d.get_float),
+                                   unknown1=self._read("unknown1 [{}][{}]".format(i, u), d.get_float),
+                                   id=self._read("id [{}][{}]".format(i, u), d.get_u32),
+                                   type=self._read("type [{}][{}]".format(i, u), d.get_u16),
+                                   unknown2=self._read("unknown2 [{}][{}]".format(i, u), d.get_s8),
+                                   angle=self._read("angle [{}][{}]".format(i, u), d.get_float),
+                                   frame=self._read("frame [{}][{}]".format(i, u), d.get_u16),
+                                   inId=self._read("inId [{}][{}]".format(i, u), d.get_s32))
 
-        if self.scenario.header_type is HT_AOE2_DE:
-            self.scenario.ukn_9_bytes_before_triggers = self._read("scenario.ukn_9_bytes_before_triggers",
-                                                                   lambda: d.getBytes(9))
+        self.scenario.ukn_9_bytes_before_triggers = self._read("scenario.ukn_9_bytes_before_triggers",
+                                                               lambda: d.getBytes(9))
+
+        logger.debug("-------------------------------------------------------")
+        logger.debug("-------------------------------------------------------")
+        logger.debug("-------------------------------------------------------")
+        logger.debug("---------------------- TRIGGERS  ----------------------")
+        logger.debug("-------------------------------------------------------")
+        logger.debug("-------------------------------------------------------")
+        logger.debug("-------------------------------------------------------")
+
         n = self._read("number of triggers".format(i), d.get_u32)  # number of triggers
 
         for id_trigger in range(n):
@@ -540,30 +483,30 @@ class Decompress:
             self.scenario.add(trigger)
             trigger.id = id_trigger
             trigger.enable = self._read("trigger[{}].enable".format(id_trigger), d.get_u32)
-            trigger.loop = self._read("trigger[{}].loop".format(id_trigger), d.getInt8)
+            trigger.loop = self._read("trigger[{}].loop".format(id_trigger), d.get_s8)
             trigger.trigger_description["string_table_id"] = \
-                self._read("trigger[{}].trigger_description[\"string_table_id\"]".format(id_trigger), d.getInt8)
-            trigger.unknowns[0] = self._read(None, d.getInt8)
-            trigger.unknowns[1] = self._read(None, d.getInt8)
-            trigger.unknowns[2] = self._read(None, d.getInt8)
+                self._read("trigger[{}].trigger_description[\"string_table_id\"]".format(id_trigger), d.get_s8)
+            trigger.unknowns[0] = self._read(None, d.get_s8)
+            trigger.unknowns[1] = self._read(None, d.get_s8)
+            trigger.unknowns[2] = self._read(None, d.get_s8)
             trigger.display_as_objective = \
-                self._read("trigger[{}].display_as_objective".format(id_trigger), d.getInt8)
+                self._read("trigger[{}].display_as_objective".format(id_trigger), d.get_s8)
             trigger.description_order = self._read("[id={}] trigger.description_order".format(id_trigger), d.get_u32)
-            trigger.make_header = self._read("[id={}] trigger.make_header".format(id_trigger), d.getInt8)
+            trigger.make_header = self._read("[id={}] trigger.make_header".format(id_trigger), d.get_s8)
             trigger.short_description["string_table_id"] = \
-                self._read("trigger[{}].short_description[\"string_table_id\"]".format(id_trigger), d.getInt8)
-            trigger.unknowns[3] = self._read(None, d.getInt8)
-            trigger.unknowns[4] = self._read(None, d.getInt8)
-            trigger.unknowns[5] = self._read(None, d.getInt8)
+                self._read("trigger[{}].short_description[\"string_table_id\"]".format(id_trigger), d.get_s8)
+            trigger.unknowns[3] = self._read(None, d.get_s8)
+            trigger.unknowns[4] = self._read(None, d.get_s8)
+            trigger.unknowns[5] = self._read(None, d.get_s8)
             trigger.short_description["display_on_screen"] = \
-                self._read("trigger[{}].short_description[\"display_on_screen\"]".format(id_trigger), d.getInt8)
-            trigger.unknowns[6] = self._read(None, d.getInt8)
-            trigger.unknowns[7] = self._read(None, d.getInt8)
-            trigger.unknowns[8] = self._read(None, d.getInt8)
-            trigger.unknowns[9] = self._read(None, d.getInt8)
-            trigger.unknowns[10] = self._read(None, d.getInt8)
+                self._read("trigger[{}].short_description[\"display_on_screen\"]".format(id_trigger), d.get_s8)
+            trigger.unknowns[6] = self._read(None, d.get_s8)
+            trigger.unknowns[7] = self._read(None, d.get_s8)
+            trigger.unknowns[8] = self._read(None, d.get_s8)
+            trigger.unknowns[9] = self._read(None, d.get_s8)
+            trigger.unknowns[10] = self._read(None, d.get_s8)
             logger.debug("trigger[{}].unknowns={}".format(id_trigger, trigger.unknowns))
-            trigger.mute_objectives = self._read("trigger[{}].mute_objectives".format(id_trigger), d.getInt8)
+            trigger.mute_objectives = self._read("trigger[{}].mute_objectives".format(id_trigger), d.get_s8)
             trigger.trigger_description["text"] = \
                 self._read("trigger[{}].trigger_description[\"text\"]".format(id_trigger), d.getStr32)
             trigger.name = self._read("trigger[{}].name".format(id_trigger), d.getStr32)
@@ -580,43 +523,47 @@ class Decompress:
                 if effect.check != 24:
                     logger.warning(
                         "check attribut is '{}' for effects but should be 24 for aoe2scenario ???!!".format(check))
-                effect.aiGoal = self._read("trigger[{}].effect[{}].aiGoal".format(id_trigger,e), d.get_s32)
-                effect.amount = self._read("trigger[{}].effect[{}].amount".format(id_trigger,e), d.get_s32)
-                effect.resource = self._read("trigger[{}].effect[{}].resource".format(id_trigger,e), d.get_s32)
-                effect.state = self._read("trigger[{}].effect[{}].state".format(id_trigger,e), d.get_s32)
+                effect.aiGoal = self._read("trigger[{}].effect[{}].aiGoal".format(id_trigger, e), d.get_s32)
+                effect.amount = self._read("trigger[{}].effect[{}].amount".format(id_trigger, e), d.get_s32)
+                effect.resource = self._read("trigger[{}].effect[{}].resource".format(id_trigger, e), d.get_s32)
+                effect.state = self._read("trigger[{}].effect[{}].state".format(id_trigger, e), d.get_s32)
 
-                effect.selectedCount = self._read("trigger[{}].effect[{}].selectedCount".format(id_trigger,e), d.get_s32)
-                effect.unitId = self._read("trigger[{}].effect[{}].unitId".format(id_trigger,e), d.get_s32)
+                effect.selectedCount = self._read("trigger[{}].effect[{}].selectedCount".format(id_trigger, e),
+                                                  d.get_s32)
+                effect.unitId = self._read("trigger[{}].effect[{}].unitId".format(id_trigger, e), d.get_s32)
 
-                effect.unitName = self._read("trigger[{}].effect[{}].unitName".format(id_trigger,e), d.get_s32)
-                effect.source_player = self._read("trigger[{}].effect[{}].sourcePlayer".format(id_trigger,e), d.get_s32)
-                effect.target_player = self._read("trigger[{}].effect[{}].targetPlayer".format(id_trigger,e), d.get_s32)
+                effect.unitName = self._read("trigger[{}].effect[{}].unitName".format(id_trigger, e), d.get_s32)
+                effect.source_player = self._read("trigger[{}].effect[{}].sourcePlayer".format(id_trigger, e),
+                                                  d.get_s32)
+                effect.target_player = self._read("trigger[{}].effect[{}].targetPlayer".format(id_trigger, e),
+                                                  d.get_s32)
 
-                effect.tech = self._read("trigger[{}].effect[{}].tech".format(id_trigger,e), d.get_s32)
+                effect.tech = self._read("trigger[{}].effect[{}].tech".format(id_trigger, e), d.get_s32)
 
-                effect.stringId = self._read("trigger[{}].effect[{}].stringId".format(id_trigger,e), d.get_s32)
-                effect.unknown1 = self._read("trigger[{}].effect[{}].unknown1".format(id_trigger,e), d.get_s32)
-                effect.time = self._read("trigger[{}].effect[{}].time".format(id_trigger,e), d.get_s32)
+                effect.stringId = self._read("trigger[{}].effect[{}].stringId".format(id_trigger, e), d.get_s32)
+                effect.unknown1 = self._read("trigger[{}].effect[{}].unknown1".format(id_trigger, e), d.get_s32)
+                effect.time = self._read("trigger[{}].effect[{}].time".format(id_trigger, e), d.get_s32)
 
-                triggerId = self._read("trigger[{}].effect[{}].triggerId".format(id_trigger,e), d.get_s32)
+                triggerId = self._read("trigger[{}].effect[{}].triggerId".format(id_trigger, e), d.get_s32)
                 effect.trigger_to_activate = Trigger(id=triggerId)
-                effect.x = self._read("trigger[{}].effect[{}].x".format(id_trigger,e), d.get_s32)
-                effect.y = self._read("trigger[{}].effect[{}].y".format(id_trigger,e), d.get_s32)
-                effect.x1 = self._read("trigger[{}].effect[{}].x1".format(id_trigger,e), d.get_s32)
+                effect.x = self._read("trigger[{}].effect[{}].x".format(id_trigger, e), d.get_s32)
+                effect.y = self._read("trigger[{}].effect[{}].y".format(id_trigger, e), d.get_s32)
+                effect.x1 = self._read("trigger[{}].effect[{}].x1".format(id_trigger, e), d.get_s32)
 
-                effect.y1 = self._read("trigger[{}].effect[{}].y1".format(id_trigger,e), d.get_s32)
-                effect.x2 = self._read("trigger[{}].effect[{}].x2".format(id_trigger,e), d.get_s32)
-                effect.y2 = self._read("trigger[{}].effect[{}].y2".format(id_trigger,e), d.get_s32)
-                effect.unitGroup = self._read("trigger[{}].effect[{}].unitGroup".format(id_trigger,e), d.get_s32)
-                effect.unitType = self._read("trigger[{}].effect[{}].unitType".format(id_trigger,e), d.get_s32)
-                effect.instructionId = self._read("trigger[{}].effect[{}].instructionId".format(id_trigger,e), d.get_s32)
+                effect.y1 = self._read("trigger[{}].effect[{}].y1".format(id_trigger, e), d.get_s32)
+                effect.x2 = self._read("trigger[{}].effect[{}].x2".format(id_trigger, e), d.get_s32)
+                effect.y2 = self._read("trigger[{}].effect[{}].y2".format(id_trigger, e), d.get_s32)
+                effect.unitGroup = self._read("trigger[{}].effect[{}].unitGroup".format(id_trigger, e), d.get_s32)
+                effect.unitType = self._read("trigger[{}].effect[{}].unitType".format(id_trigger, e), d.get_s32)
+                effect.instructionId = self._read("trigger[{}].effect[{}].instructionId".format(id_trigger, e),
+                                                  d.get_s32)
 
-                effect.unknown2 = self._read("trigger[{}].effect[{}].unknown2".format(id_trigger,e), d.get_s32)
-                effect.text = self._read("trigger[{}].effect[{}].text".format(id_trigger,e), d.getStr32)
-                effect.filename = self._read("trigger[{}].effect[{}].filename".format(id_trigger,e), d.getStr32)
+                effect.unknown2 = self._read("trigger[{}].effect[{}].unknown2".format(id_trigger, e), d.get_s32)
+                effect.text = self._read("trigger[{}].effect[{}].text".format(id_trigger, e), d.getStr32)
+                effect.filename = self._read("trigger[{}].effect[{}].filename".format(id_trigger, e), d.getStr32)
 
                 for k in range(effect.selectedCount):
-                    unitid = self._read("trigger[{}].effect[{}].unitid[{}]".format(id_trigger,e,k), d.get_s32)
+                    unitid = self._read("trigger[{}].effect[{}].unitid[{}]".format(id_trigger, e, k), d.get_s32)
                     effect.unitIds.append(unitid)
             d.skip(ne * 4)  # effects order
 

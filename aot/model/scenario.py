@@ -6,6 +6,7 @@ from aot.model.controller.map import Map
 from aot.model.controller.messages import Messages
 from aot.model.controller.players import Players
 from aot.model.controller.triggers import Triggers
+from aot.model.debug import Debug
 from aot.model.enums.constants import HT_AOE2_DE
 from aot.model.enums.sizes import Size
 from aot.model.enums.unit import UnitConstant

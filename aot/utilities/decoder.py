@@ -62,12 +62,12 @@ class Decoder:
         self.__pntr += 2
         return struct.unpack('H', self.__data[self.__pntr - 2:self.__pntr])[0]
 
-    def getFloat(self):
+    def get_float(self):
         self.__pntr += 4
         v = struct.unpack('f', self.__data[self.__pntr - 4:self.__pntr])[0]
         return v
 
-    def getInt8(self):
+    def get_s8(self):
         self.__pntr += 1
         return ord(self.__data[self.__pntr - 1:self.__pntr])
 
