@@ -143,7 +143,7 @@ class Compress:
 
         put_bytes(self.scenario.unknown_bytes_after_civs)  # todo default
 
-        put_str16(scenario.filename, remove_last=False)
+        put_str16(scenario.original_filename, remove_last=False) # todo default
 
         logger.debug("-------------------------------------------------------")
         logger.debug("-------------------------------------------------------")
@@ -280,7 +280,6 @@ class Compress:
         # section: Diplomacy
         for i in range(1, 17):
             for j in range(1, 17):
-                # print(players[i].diplomacy[j])
                 put_s32(players[i].diplomacy[j])
 
         put_bytes(scenario.big_skip_after_diplo)
@@ -436,21 +435,17 @@ class Compress:
 
         for i in range(1, 9):
             number_of_units = len(players[i].units)
-            print(number_of_units)
             put_u32(number_of_units)
-            for i_u in range(number_of_units):
-                u = players[i].units[i_u]
-                print(u)
-                exit()
-                put_float(u.x)
-                put_float(u.y)
-                put_float(u.unknown1)
-                put_u32(u.id)
-                put_u16(u.type)
-                put_s8(u.unknown2)
-                put_float(u.angle)
-                put_u16(u.frame)
-                put_s32(u.inId)
+            for unit in players[i].units:
+                put_float(unit.x)
+                put_float(unit.y)
+                put_float(unit.unknown1)
+                put_u32(unit.id)
+                put_u16(unit.type)
+                put_s8(unit.unknown2)
+                put_float(unit.angle)
+                put_u16(unit.frame)
+                put_s32(unit.inId)
 
         put_bytes(scenario.ukn_9_bytes_before_triggers)
 
@@ -466,7 +461,7 @@ class Compress:
 
         for trigger in triggers:
             put_u32(trigger.enable)
-            put_u32(trigger.loop)
+            put_s8(trigger.loop)
             put_s8(trigger.trigger_description["string_table_id"])
             put_s8(trigger.unknowns[0])
             put_s8(trigger.unknowns[1])
@@ -502,7 +497,6 @@ class Compress:
                 put_s32(effect.state)
                 put_s32(len(effect.unitIds))  # selected count
                 put_s32(effect.unitId)
-                # print(effect.unitName)
                 put_s32(effect.unitName)
                 put_s32(effect.sourcePlayer)
                 put_s32(effect.targetPlayer)

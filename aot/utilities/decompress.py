@@ -158,9 +158,10 @@ class Decompress:
             players[i].unknown1 = self._read("player_{}.unknown1".format(i), d.get_u32)
 
         scenario.unknown_bytes_after_civs = self._read(" scenario.unknown_bytes_after_civs", lambda: d.getBytes(73))
+        #print(scenario.unknown_bytes_after_civs)
 
-        scenario.filename = self._read("original_filename", lambda: d.getStr16(remove_last=False))  # original filename
-
+        scenario.original_filename = self._read("original_filename", lambda: d.getStr16(remove_last=False))  # original filename
+        #self.show_next_bytes(1000, d)
         logger.debug("-------------------------------------------------------")
         logger.debug("-------------------------------------------------------")
         logger.debug("-------------------------------------------------------")
@@ -364,11 +365,11 @@ class Decompress:
                                                                lambda: d.getBytes(22))
 
         scenario.map.water_definitions = self._read("scenario.map.water_definitions",
-                                                    lambda: d.getStr16(remove_last=False))
+                                                    lambda: d.getStr16(remove_last=True))
 
         scenario.map.unk_before_empty = self._read("scenario.map.unk_before_empty", lambda: d.getBytes(2))
 
-        scenario.map.empty = self._read("scenario.map.empty", lambda: d.getStr16(remove_last=False))
+        scenario.map.empty = self._read("scenario.map.empty", lambda: d.getStr16(remove_last=True))
 
         scenario.map.unk_before_w_h = self._read("scenario.map.unk_before_w_h", lambda: d.getBytes(10))
 
@@ -622,7 +623,15 @@ class Decompress:
                             if tr.id == e.trigger_to_activate.id:
                                 e.trigger_to_activate = tr
 
-        debug.included = d.get_u32()
-        debug.error = d.get_u32()
+        logger.debug("-------------------------------------------------------")
+        logger.debug("-------------------------------------------------------")
+        logger.debug("-------------------------------------------------------")
+        logger.debug("---------------------- DEBUG  -------------------------")
+        logger.debug("-------------------------------------------------------")
+        logger.debug("-------------------------------------------------------")
+        logger.debug("-------------------------------------------------------")
+
+        debug.included =  self._read("debug.included",d.get_u32)
+        debug.error = self._read("debug.error",d.get_u32)
         if debug.included:
-            debug.raw = d.getBytes(396)  # AI DEBUG file
+            debug.raw = self._read("debug.raw", lambda :d.getBytes(396))  # AI DEBUG file
