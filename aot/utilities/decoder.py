@@ -69,7 +69,11 @@ class Decoder:
 
     def get_s8(self):
         self.__pntr += 1
-        return ord(self.__data[self.__pntr - 1:self.__pntr])
+        return struct.unpack('b', self.__data[self.__pntr - 1:self.__pntr])[0]
+
+    def get_u8(self):
+        self.__pntr += 1
+        return struct.unpack('B', self.__data[self.__pntr - 1:self.__pntr])[0]
 
     def getAscii(self, length):
         self.__pntr += length

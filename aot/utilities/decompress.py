@@ -379,13 +379,13 @@ class Decompress:
         scenario.map.resize(w, h)
 
         for i, tile in enumerate(self.scenario.tiles):
-            tile.type = self._read(None, d.get_s8)
-            tile.elevation = self._read(None, d.get_s8)
-            tile.unknown1 = self._read(None, d.get_s8)
-            tile.unknown2 = self._read(None, d.get_s8)
-            tile.unknown3 = self._read(None, d.get_s8)
-            tile.layer_type = self._read(None, d.get_s8)
-            tile.is_layering = self._read(None, d.get_s8)  # 0 if yes
+            tile.type = self._read(None, d.get_u8)
+            tile.elevation = self._read(None, d.get_u8)
+            tile.unknown1 = self._read(None, d.get_u8)
+            tile.unknown2 = self._read(None, d.get_u8)
+            tile.unknown3 = self._read(None, d.get_u8)
+            tile.layer_type = self._read(None, d.get_u8)
+            tile.is_layering = self._read(None, d.get_u8)  # 0 if yes
 
         d.skip_constant(9)  # number of unit sections, N. I've always seen = 9.
 
@@ -565,7 +565,10 @@ class Decompress:
                 for k in range(effect.selectedCount):
                     unitid = self._read("trigger[{}].effect[{}].unitid[{}]".format(id_trigger, e, k), d.get_s32)
                     effect.unitIds.append(unitid)
-            d.skip(ne * 4)  # effects order
+
+            trigger.effects_order = [self._read(
+                "trigger[{}].effect[{}] order".format(id_trigger,e),
+                d.get_u32) for e in range(ne)]
 
             nc = d.get_s32()  # number of conditions
             logger.debug("PROCESSING CONDITIONS")
@@ -602,8 +605,13 @@ class Decompress:
                     unitType=unitType, aiSignal=aiSignal, reversed=reversed, unknown2=unknown2
                 )
 
-            d.skip(nc * 4)  # conditions order
-        d.skip(n * 4)
+            trigger.conditions_order = [self._read(
+                "trigger[{}].conditions[{}] order".format(id_trigger,c),
+                d.get_u32) for c in range(nc)]
+
+        triggers.order = [self._read(
+            "triggers.order[{}] order".format(i),
+            d.get_u32) for i in range(n)]
 
         # not very well optimized if you ask me
         for id_trigger in scenario.triggers:
@@ -614,18 +622,7 @@ class Decompress:
                             if tr.id == e.trigger_to_activate.id:
                                 e.trigger_to_activate = tr
 
-        # print("last bytes")
-        # print(decoder.getBytes(1000))
         debug.included = d.get_u32()
         debug.error = d.get_u32()
         if debug.included:
             debug.raw = d.getBytes(396)  # AI DEBUG file
-        """
-        for i in range(1, 9):
-            examples.players[i].constName   = getStr16()
-            examples.players[i].cameraX     = getFloat()
-            examples.players[i].cameraY     = getFloat()
-            examples.players[i].cameraXX    = getInt16()
-            examples.players[i].cameraYY    = getInt16()
-            examples.players[i].allyVictory = getInt8()
-        """

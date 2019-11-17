@@ -66,10 +66,10 @@ class Compress:
     def compressHeader(self, f):
         encoder = Encoder(f)
 
-        putAscii = encoder.putAscii
-        putUInt32 = encoder.putUInt32
-        putInt32 = encoder.putInt32
-        putStr32 = encoder.putStr32
+        putAscii = encoder.put_ascii
+        putUInt32 = encoder.put_u32
+        putInt32 = encoder.put_s32
+        putStr32 = encoder.put_str32
 
         putAscii(str(self.scenario.version))
         # if self.examples.is_aoe2scenario:
@@ -102,16 +102,17 @@ class Compress:
         triggers = self.scenario.triggers
         debug = self.scenario.debug
 
-        putAscii = encoder.putAscii
-        put_u32 = encoder.putUInt32
-        put_s8 = encoder.putInt8
-        put_s16 = encoder.putInt16
-        put_u16 = encoder.putUInt16
-        put_s32 = encoder.putInt32
-        put_str16 = encoder.putStr16
-        put_str32 = encoder.putStr32
-        put_float = encoder.putFloat
-        put_bytes = encoder.putBytes
+        put_ascii = encoder.put_ascii
+        put_u32 = encoder.put_u32
+        put_s8 = encoder.put_s8
+        put_u8 = encoder.put_u8
+        put_s16 = encoder.put_s16
+        put_u16 = encoder.put_u16
+        put_s32 = encoder.put_s32
+        put_str16 = encoder.put_str16
+        put_str32 = encoder.put_str32
+        put_float = encoder.put_float
+        put_bytes = encoder.put_bytes
 
         logger.debug("-------------------------------------------------------")
         logger.debug("-------------------------------------------------------")
@@ -125,7 +126,7 @@ class Compress:
         put_float(scenario.version2)
 
         for i in range(1, 17):
-            putAscii(players[i].name, 256)
+            put_ascii(players[i].name, 256)
 
         for i in range(1, 17):
             put_s32(players[i].nameID)
@@ -299,19 +300,19 @@ class Compress:
         logger.debug("-------------------------------------------------------")
 
         for i in range(1, 17):  # tech count
-            put_s32(len(players[i].disabledTechs)) # todo default
+            put_s32(len(players[i].disabledTechs))  # todo default
         for i in range(1, 17):  # techs
             for t in players[i].disabledTechs:
                 put_s32(t)
 
         for i in range(1, 17):  # unit count
-            put_s32(len(players[i].disabledUnits)) # todo default
+            put_s32(len(players[i].disabledUnits))  # todo default
         for i in range(1, 17):  # units
             for t in players[i].disabledUnits:
                 put_s32(t)
 
         for i in range(1, 17):  # building count
-            put_s32(len(players[i].disabledBuildings)) # todo default
+            put_s32(len(players[i].disabledBuildings))  # todo default
         for i in range(1, 17):  # buildings
             for t in players[i].disabledBuildings:
                 put_s32(t)
@@ -346,27 +347,28 @@ class Compress:
 
         put_u32(scenario.map.aiType)
 
-        put_bytes(scenario.map.unk_before_water_definitions) # todo default
+        put_bytes(scenario.map.unk_before_water_definitions)  # todo default
 
-        put_str16(scenario.map.water_definitions) # todo default
+        put_str16(scenario.map.water_definitions)  # todo default
 
-        put_bytes(scenario.map.unk_before_empty) # todo default
+        put_bytes(scenario.map.unk_before_empty)  # todo default
 
-        put_str16(scenario.map.empty) # todo default
+        put_str16(scenario.map.empty)  # todo default
 
-        put_bytes(scenario.map.unk_before_w_h) # todo default
+        put_bytes(scenario.map.unk_before_w_h)  # todo default
 
         put_s32(scenario.tiles.size()[0])
         put_s32(scenario.tiles.size()[1])
 
         for i, tile in enumerate(scenario.tiles):
-            put_s8(tile.type)
+            put_u8(tile.type)
             put_s8(tile.elevation)
-            put_s8(tile.unknown1) # todo default
-            put_s8(tile.unknown2) # todo default
-            put_s8(tile.unknown3) # todo default
-            put_s8(tile.layer_type) # todo default
-            put_s8(tile.is_layering) # todo default
+            put_u8(tile.unknown1)  # todo default
+            put_u8(tile.unknown2)  # todo default
+
+            put_u8(tile.unknown3)  # todo default
+            put_u8(tile.layer_type)  # todo default
+            put_u8(tile.is_layering)  # todo default
 
         put_u32(9)  # number of units section
 
@@ -387,8 +389,6 @@ class Compress:
             put_s32(players[i].resource.padding)
             put_float(players[i].population)
 
-
-
         put_u32(9)  # number of playable players
 
         logger.debug("-------------------------------------------------------")
@@ -407,22 +407,22 @@ class Compress:
             put_s16(players[i].camera.unknown2)
             put_s8(players[i].allyVictory)
 
-            put_u16(players[i].dip) # todo default
-            put_bytes(players[i].unk0) # todo default
+            put_u16(players[i].dip)  # todo default
+            put_bytes(players[i].unk0)  # todo default
 
             for j in range(9):
                 put_s32(players[i].diplomacy.gaia[j])
 
             put_u32(players[i].color)
-            put_float(players[i].unk1) # todo default
-            put_u16(players[i].unk2) # todo default
+            put_float(players[i].unk1)  # todo default
+            put_u16(players[i].unk2)  # todo default
             if players[i].unk1 == 2.0:
-                put_bytes(players[i].unk3) # todo default
-            put_bytes(players[i].unk4) # todo default
-            put_bytes(players[i].unk5) # todo default
-            put_bytes(players[i].unk6) # todo default
+                put_bytes(players[i].unk3)  # todo default
+            put_bytes(players[i].unk4)  # todo default
+            put_bytes(players[i].unk5)  # todo default
+            put_bytes(players[i].unk6)  # todo default
 
-        put_bytes(scenario.data3_unk) # todo default
+        put_bytes(scenario.data3_unk)  # todo default
 
         logger.debug("-------------------------------------------------------")
         logger.debug("-------------------------------------------------------")
@@ -434,10 +434,14 @@ class Compress:
 
         put_s8(scenario.unk_unit_section)
 
-        for i in range(1,9):
+        for i in range(1, 9):
             number_of_units = len(players[i].units)
+            print(number_of_units)
             put_u32(number_of_units)
-            for u in range(number_of_units):
+            for i_u in range(number_of_units):
+                u = players[i].units[i_u]
+                print(u)
+                exit()
                 put_float(u.x)
                 put_float(u.y)
                 put_float(u.unknown1)
@@ -528,7 +532,6 @@ class Compress:
             for c in range(len(trigger.conditions)):
                 logger.debug(c.__repr__())
                 condition = trigger.conditions[c]
-                # print(condition)
                 put_u32(condition.type)
                 put_s32(condition.check)
                 put_s32(condition.amount)
@@ -553,8 +556,10 @@ class Compress:
                 put_s32(i)
         for i in range(len(triggers)):
             put_s32(i)
-        put_u32(0)
-        put_u32(0)
+        put_u32(debug.included)
+        put_u32(debug.error)
+        if debug.included:
+            put_bytes(debug.raw)
 
 
 # = open('')
