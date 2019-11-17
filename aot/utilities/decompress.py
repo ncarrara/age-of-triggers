@@ -1,10 +1,12 @@
 from aot.model.enums.constants import HT_AOE2_HD, HT_AOE2_DE
+from aot.model.trigger import Trigger
 from aot.utilities import *
 from aot.model import *
 import zlib
 import time
-
 import logging
+
+from aot.utilities.decoder import Decoder
 
 logger = logging.getLogger(__name__)
 
@@ -113,6 +115,7 @@ class Decompress:
         for _ in range(n):
             logger.debug(decoder.get_s32())
         exit()
+
     def show_next_floats(self, n, decoder):
         for _ in range(n):
             logger.debug(decoder.getFloat())
@@ -495,9 +498,9 @@ class Decompress:
             d.skip(7 * 1)  # TODO decompress/compress
             d.skip(4)  # TODO decompress/compress
 
-        self._read("skip after player data 3 ",lambda :d.getBytes(2))  # TODO compress
+        self._read("skip after player data 3 ", lambda: d.getBytes(2))  # TODO compress
 
-        self._read("unk after player data 3",d.getInt8)  # unknown # TODO compress
+        self._read("unk after player data 3", d.getInt8)  # unknown # TODO compress
 
         if self.scenario.header_type is HT_AOE2_DE:
             logger.debug("-------------------------------------------------------")
@@ -508,97 +511,106 @@ class Decompress:
             logger.debug("-------------------------------------------------------")
             logger.debug("-------------------------------------------------------")
             something = self._read("something", d.getInt8)
-            for i in range(1,9):
+            for i in range(1, 9):
 
-                number_of_units= self._read("number_of_units[{}]".format(i),d.get_u32)
+                number_of_units = self._read("number_of_units[{}]".format(i), d.get_u32)
 
                 for u in range(number_of_units):
                     scenario.units.new(owner=i,
-                                       x=self._read("x [{}][{}]".format(i,u),d.getFloat),
-                                       y=self._read("y [{}][{}]".format(i,u),d.getFloat),
-                                       unknown1=self._read("unknown1 [{}][{}]".format(i,u),d.getFloat),
-                                       id=self._read("id [{}][{}]".format(i,u),d.get_u32),
-                                       type=self._read("type [{}][{}]".format(i,u),d.get_u16),
-                                       unknown2=self._read("unknown2 [{}][{}]".format(i,u),d.getInt8),
-                                       angle=self._read("angle [{}][{}]".format(i,u),d.getFloat),
-                                       frame=self._read("frame [{}][{}]".format(i,u),d.get_u16),
-                                       inId=self._read("inId [{}][{}]".format(i,u),d.get_s32))
+                                       x=self._read("x [{}][{}]".format(i, u), d.getFloat),
+                                       y=self._read("y [{}][{}]".format(i, u), d.getFloat),
+                                       unknown1=self._read("unknown1 [{}][{}]".format(i, u), d.getFloat),
+                                       id=self._read("id [{}][{}]".format(i, u), d.get_u32),
+                                       type=self._read("type [{}][{}]".format(i, u), d.get_u16),
+                                       unknown2=self._read("unknown2 [{}][{}]".format(i, u), d.getInt8),
+                                       angle=self._read("angle [{}][{}]".format(i, u), d.getFloat),
+                                       frame=self._read("frame [{}][{}]".format(i, u), d.get_u16),
+                                       inId=self._read("inId [{}][{}]".format(i, u), d.get_s32))
 
         if self.scenario.header_type is HT_AOE2_DE:
-            self.scenario.ukn_9_bytes_before_triggers = self._read("scenario.ukn_9_bytes_before_triggers",lambda :d.getBytes(9))
+            self.scenario.ukn_9_bytes_before_triggers = self._read("scenario.ukn_9_bytes_before_triggers",
+                                                                   lambda: d.getBytes(9))
         n = self._read("number of triggers".format(i), d.get_u32)  # number of triggers
 
-        for t in range(n):
+        for id_trigger in range(n):
 
-            enable= self._read("enable( /{})".format(t), d.get_u32)
-            loop=self._read("loop( /{})".format(t), d.get_u32)
-            unknown1 = self._read("unknown1( /{})".format(t), d.getInt8)
-            display_as_objective = self._read("display_as_objective( /{})".format(t), d.getInt8)
-            objective_order = self._read("objective_order( /{})".format(t), d.get_u32)
-            make_header = self._read("make_header( /{})".format(t), d.get_u32)
-            if self.scenario.header_type is HT_AOE2_DE:
-                unknown3 = self._read("unknown3( /{})".format(t), d.getInt8)
-                display_on_screen = self._read("display_on_screen( /{})".format(t), d.getInt8)
-                unknown5 = self._read("unknown5( /{})".format(t), d.getInt8)
-                unknown6 = self._read("unknown6( /{})".format(t), d.getInt8)
-            trigger_description = self._read("description( /{})".format(t), d.getStr32)
-            self.show_next_bytes(100, d)
-            triggers.new(
-                make_header=make_header,
-                display_on_screen= display_on_screen,
-                enable=enable,
-                loop=loop,
-                unknown1=unknown1,
-                objective=display_as_objective,
-                objectiveOrd=objective_order,
-                unknown2= unknown2,
-                text=trigger_description,
-                name=self._read("name( /{})".format(t), d.getStr32),
-                id=t
-            )
+            trigger = Trigger()  # TODO compress
+            self.scenario.add(trigger)
+            trigger.id = id_trigger
+            trigger.enable = self._read("[id={}] trigger.enable".format(id_trigger), d.get_u32)
+            trigger.loop = self._read("[id={}] trigger.loop".format(id_trigger), d.getInt8)
+            trigger.trigger_description["string_table_id"] = \
+                self._read("[id={}] trigger.trigger_description[\"string_table_id\"]".format(id_trigger), d.getInt8)
+            trigger.unknowns[0] = self._read(None, d.getInt8)
+            trigger.unknowns[1] = self._read(None, d.getInt8)
+            trigger.unknowns[2] = self._read(None, d.getInt8)
+            trigger.display_as_objective = \
+                self._read("[id={}] trigger.display_as_objective".format(id_trigger), d.getInt8)
+            trigger.description_order = self._read("[id={}] trigger.description_order".format(id_trigger), d.get_u32)
+            trigger.make_header = self._read("[id={}] trigger.make_header".format(id_trigger), d.getInt8)
+            trigger.short_description["string_table_id"] = \
+                self._read("[id={}] trigger.short_description[\"string_table_id\"]".format(id_trigger), d.getInt8)
+            trigger.unknowns[3] = self._read(None, d.getInt8)
+            trigger.unknowns[4] = self._read(None, d.getInt8)
+            trigger.unknowns[5] = self._read(None, d.getInt8)
+            trigger.short_description["display_on_screen"] = \
+                self._read("[id={}] trigger.short_description[\"display_on_screen\"]".format(id_trigger), d.getInt8)
+            trigger.unknowns[6] = self._read(None, d.getInt8)
+            trigger.unknowns[7] = self._read(None, d.getInt8)
+            trigger.unknowns[8] = self._read(None, d.getInt8)
+            trigger.unknowns[9] = self._read(None, d.getInt8)
+            trigger.unknowns[10] = self._read(None, d.getInt8)
+            logger.debug("[id={}] trigger.unknowns={}".format(id_trigger, trigger.unknowns))
+            trigger.mute_objectives = self._read("[id={}] trigger.mute_objectives".format(id_trigger), d.getInt8)
+            trigger.trigger_description["text"] = \
+                self._read("[id={}] trigger.trigger_description[\"text\"]".format(id_trigger), d.getStr32)
+            trigger.name = self._read("[id={}] name".format(id_trigger), d.getStr32)
+            trigger.short_description["text"] = \
+                self._read("[id={}] trigger.short_description[\"text\"]".format(id_trigger), d.getStr32)
+
             logger.debug("PROCESSING EFFECTS")
-            ne = self._read("number of effect( /{})".format(t), d.get_s32)  # number of effects
+            ne = self._read("number of effect({})".format(id_trigger), d.get_s32)  # number of effects
             for e in range(ne):
-                type = self._read("type({}/{})".format(e, t), d.get_s32)
-                check = self._read("check({}/{})".format(e, t), d.get_s32)
+                type = self._read("type({}/{})".format(e, id_trigger), d.get_s32)
+                check = self._read("check({}/{})".format(e, id_trigger), d.get_s32)
                 if check != 24:
                     logger.warning(
                         "check attribut is '{}' for effects but should be 24 for aoe2scenario ???!!".format(check))
-                aiGoal = self._read("aiGoal({}/{})".format(e, t), d.get_s32)
-                amount = self._read("amount({}/{})".format(e, t), d.get_s32)
-                resource = self._read("resource({}/{})".format(e, t), d.get_s32)
-                state = self._read("state({}/{})".format(e, t), d.get_s32)
+                aiGoal = self._read("aiGoal({}/{})".format(e, id_trigger), d.get_s32)
+                amount = self._read("amount({}/{})".format(e, id_trigger), d.get_s32)
+                resource = self._read("resource({}/{})".format(e, id_trigger), d.get_s32)
+                state = self._read("state({}/{})".format(e, id_trigger), d.get_s32)
 
-                selectedCount = self._read("selectedCount({}/{})".format(e, t), d.get_s32)
-                unitId = self._read("unitId({}/{})".format(e, t), d.get_s32)
+                selectedCount = self._read("selectedCount({}/{})".format(e, id_trigger), d.get_s32)
+                unitId = self._read("unitId({}/{})".format(e, id_trigger), d.get_s32)
 
-                unitName = self._read("unitName({}/{})".format(e, t), d.get_s32)
-                sourcePlayer = self._read("sourcePlayer({}/{})".format(e, t), d.get_s32)
-                targetPlayer = self._read("targetPlayer({}/{})".format(e, t), d.get_s32)
+                unitName = self._read("unitName({}/{})".format(e, id_trigger), d.get_s32)
+                sourcePlayer = self._read("sourcePlayer({}/{})".format(e, id_trigger), d.get_s32)
+                targetPlayer = self._read("targetPlayer({}/{})".format(e, id_trigger), d.get_s32)
 
-                tech = self._read("tech({}/{})".format(e, t), d.get_s32)
+                tech = self._read("tech({}/{})".format(e, id_trigger), d.get_s32)
 
-                stringId = self._read("stringId({}/{})".format(e, t), d.get_s32)
-                unknown1 = self._read("unknown1({}/{})".format(e, t), d.get_s32)
-                time = self._read("time({}/{})".format(e, t), d.get_s32)
+                stringId = self._read("stringId({}/{})".format(e, id_trigger), d.get_s32)
+                unknown1 = self._read("unknown1({}/{})".format(e, id_trigger), d.get_s32)
+                time = self._read("time({}/{})".format(e, id_trigger), d.get_s32)
 
-                triggerId = self._read("triggerId({}/{})".format(e, t), d.get_s32)
-                x = self._read("x({}/{})".format(e, t), d.get_s32)
-                y = self._read("y({}/{})".format(e, t), d.get_s32)
-                x1 = self._read("x1({}/{})".format(e, t), d.get_s32)
+                triggerId = self._read("triggerId({}/{})".format(e, id_trigger), d.get_s32)
+                x = self._read("x({}/{})".format(e, id_trigger), d.get_s32)
+                y = self._read("y({}/{})".format(e, id_trigger), d.get_s32)
+                x1 = self._read("x1({}/{})".format(e, id_trigger), d.get_s32)
 
-                y1 = self._read("y1({}/{})".format(e, t), d.get_s32)
-                x2 = self._read("x2({}/{})".format(e, t), d.get_s32)
-                y2 = self._read("y2({}/{})".format(e, t), d.get_s32)
-                unitGroup = self._read("unitGroup({}/{})".format(e, t), d.get_s32)
-                unitType = self._read("unitType({}/{})".format(e, t), d.get_s32)
-                instructionId = self._read("instructionId({}/{})".format(e, t), d.get_s32)
+                y1 = self._read("y1({}/{})".format(e, id_trigger), d.get_s32)
+                x2 = self._read("x2({}/{})".format(e, id_trigger), d.get_s32)
+                y2 = self._read("y2({}/{})".format(e, id_trigger), d.get_s32)
+                unitGroup = self._read("unitGroup({}/{})".format(e, id_trigger), d.get_s32)
+                unitType = self._read("unitType({}/{})".format(e, id_trigger), d.get_s32)
+                instructionId = self._read("instructionId({}/{})".format(e, id_trigger), d.get_s32)
 
-                unknown2 = self._read("unknown2({}/{})".format(e, t), d.get_s32)
-                text = self._read("text({}/{})".format(e, t), d.getStr32)
-                filename = self._read("filename({}/{})".format(e, t), d.getStr32)
+                unknown2 = self._read("unknown2({}/{})".format(e, id_trigger), d.get_s32)
+                text = self._read("text({}/{})".format(e, id_trigger), d.getStr32)
+                filename = self._read("filename({}/{})".format(e, id_trigger), d.getStr32)
 
-                triggers[t].newEffect(
+                triggers[id_trigger].newEffect(
                     type=type,
                     check=check,
                     aiGoal=aiGoal,
@@ -628,9 +640,9 @@ class Decompress:
                     text=text,
                     filename=filename
                 )
-                for k in range(triggers[t].effects[e].selectedCount):
-                    unitid = self._read("Unit number id ({},{})".format(k, t), d.get_s32)
-                    triggers[t].effects[e].unitIds.append(unitid)
+                for k in range(triggers[id_trigger].effects[e].selectedCount):
+                    unitid = self._read("Unit number id ({},{})".format(k, id_trigger), d.get_s32)
+                    triggers[id_trigger].effects[e].unitIds.append(unitid)
             d.skip(ne * 4)  # effects order
 
             nc = d.get_s32()  # number of conditions
@@ -638,27 +650,27 @@ class Decompress:
             logger.debug("number of conditions : {}".format(nc))
 
             for c in range(nc):
-                type_ = self._read("type_({},{})".format(c, t), d.get_u32)
-                check = self._read("check({},{})".format(c, t), d.get_s32)
-                amount = self._read("amount({},{})".format(c, t), d.get_s32)
-                resource = self._read("resource({},{})".format(c, t), d.get_s32)
-                unitObject = self._read("unitObject({},{})".format(c, t), d.get_s32)
-                unitId = self._read("unitId({},{})".format(c, t), d.get_s32)
-                unitName = self._read("unitName({},{})".format(c, t), d.get_s32)
-                sourcePlayer = self._read("sourcePlayer({},{})".format(c, t), d.get_s32)
-                tech = self._read("tech({},{})".format(c, t), d.get_s32)
-                timer = self._read("timer({},{})".format(c, t), d.get_s32)
-                unknown1 = self._read("unknown1({},{})".format(c, t), d.get_s32)
-                x1 = self._read("x1({},{})".format(c, t), d.get_s32)
-                y1 = self._read("y1({},{})".format(c, t), d.get_s32)
-                x2 = self._read("x2({},{})".format(c, t), d.get_s32)
-                y2 = self._read("y2({},{})".format(c, t), d.get_s32)
-                unitGroup = self._read("unitGroup({},{})".format(c, t), d.get_s32)
-                unitType = self._read("unitType({},{})".format(c, t), d.get_s32)
-                aiSignal = self._read("aiSignal({},{})".format(c, t), d.get_s32)
-                reversed = self._read("reversed({},{})".format(c, t), d.get_s32)
-                unknown2 = self._read("unknown2({},{})".format(c, t), d.get_s32)
-                triggers[t].newCondition(
+                type_ = self._read("type_({},{})".format(c, id_trigger), d.get_u32)
+                check = self._read("check({},{})".format(c, id_trigger), d.get_s32)
+                amount = self._read("amount({},{})".format(c, id_trigger), d.get_s32)
+                resource = self._read("resource({},{})".format(c, id_trigger), d.get_s32)
+                unitObject = self._read("unitObject({},{})".format(c, id_trigger), d.get_s32)
+                unitId = self._read("unitId({},{})".format(c, id_trigger), d.get_s32)
+                unitName = self._read("unitName({},{})".format(c, id_trigger), d.get_s32)
+                sourcePlayer = self._read("sourcePlayer({},{})".format(c, id_trigger), d.get_s32)
+                tech = self._read("tech({},{})".format(c, id_trigger), d.get_s32)
+                timer = self._read("timer({},{})".format(c, id_trigger), d.get_s32)
+                unknown1 = self._read("unknown1({},{})".format(c, id_trigger), d.get_s32)
+                x1 = self._read("x1({},{})".format(c, id_trigger), d.get_s32)
+                y1 = self._read("y1({},{})".format(c, id_trigger), d.get_s32)
+                x2 = self._read("x2({},{})".format(c, id_trigger), d.get_s32)
+                y2 = self._read("y2({},{})".format(c, id_trigger), d.get_s32)
+                unitGroup = self._read("unitGroup({},{})".format(c, id_trigger), d.get_s32)
+                unitType = self._read("unitType({},{})".format(c, id_trigger), d.get_s32)
+                aiSignal = self._read("aiSignal({},{})".format(c, id_trigger), d.get_s32)
+                reversed = self._read("reversed({},{})".format(c, id_trigger), d.get_s32)
+                unknown2 = self._read("unknown2({},{})".format(c, id_trigger), d.get_s32)
+                triggers[id_trigger].newCondition(
                     type=type_, check=check, amount=amount,
                     resource=resource, unitObject=unitObject,
                     unitId=unitId, unitName=unitName,
@@ -672,8 +684,8 @@ class Decompress:
         d.skip(n * 4)
 
         # not very well optimized if you ask me
-        for t in scenario.triggers:
-            for e in t.effects:
+        for id_trigger in scenario.triggers:
+            for e in id_trigger.effects:
                 if e.type == EffectType.ACTIVATE_TRIGGER.value:
                     if e.trigger_to_activate.id != -1:
                         for tr in scenario.triggers:

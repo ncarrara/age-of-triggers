@@ -1,4 +1,4 @@
-from aot.model import *
+from aot.model.player import Player
 
 
 class Players:

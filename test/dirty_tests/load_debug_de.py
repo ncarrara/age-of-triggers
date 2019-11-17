@@ -1,5 +1,7 @@
+from aot.model.enums.sizes import Size
+from aot.model.scenario import Scenario
 from aot.utilities.configuration import Configuration
-from aot import Scenario, Size
+
 from aot.model.enums import constants
 import logging
 

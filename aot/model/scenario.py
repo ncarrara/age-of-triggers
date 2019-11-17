@@ -1,11 +1,22 @@
-# utilities
 from aot.meta_triggers.metatrigger import MetaTrigger
-from aot.model.controller import *
+from aot.model.controller.background import Background
+from aot.model.controller.cinematics import Cinematics
+from aot.model.controller.goals import Goals
+from aot.model.controller.map import Map
+from aot.model.controller.messages import Messages
+from aot.model.controller.players import Players
+from aot.model.controller.triggers import Triggers
 from aot.model.enums.constants import HT_AOE2_DE
 from aot.model.enums.sizes import Size
 from aot.model.enums.unit import UnitConstant
-from aot.utilities.decompress import *
-from aot.utilities.compress import *
+from aot.model.trigger import Trigger
+from aot.model.units import Units
+from aot.utilities.compress import Compress
+from aot.utilities.decompress import Decompress
+
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class Scenario:
