@@ -47,7 +47,7 @@ def deflate(data, compresslevel=9):
 
 class Decompress:
 
-    def __init__(self, scenario, bData, path_decompressed_data=None):
+    def __init__(self, scenario, bData, path_header=None,path_decompressed_data=None):
         self.scenario = scenario
         self.key_counter = 0
         self.variables = {}
@@ -55,9 +55,14 @@ class Decompress:
         headerLength = self.decompressHeader(bData)
         decompressed = self.unzip(bData[headerLength:])
         self.decompressData(decompressed)
-        if path_decompressed_data :
+        if path_decompressed_data:
             f = open(path_decompressed_data, 'wb')
             f.write(decompressed)
+            f.close()
+
+        if path_header:
+            f = open(path_header, 'wb')
+            f.write(bData[:headerLength])
             f.close()
 
     def _read(self, key=None, f=None):
@@ -75,7 +80,7 @@ class Decompress:
             str_var = str(var)
             if len(str_var) > 30:  # and len(str_var) < 100:
                 str_var = str_var[:15] + " [...] " + str_var[-15:]
-            logger.debug("[READING byte {}][{}] {}=<{}>".format(offset,f.__name__, key, str_var))
+            logger.debug("[READING byte {}][{}] {}=<{}>".format(offset, f.__name__, key, str_var))
         return var
 
     def decompressHeader(self, data):
@@ -141,7 +146,7 @@ class Decompress:
         self.scenario.version2 = self._read("version2", d.get_float)
 
         for i in range(1, 17):
-            players[i].name = self._read("player_{}.name".format(i), lambda: d.getAscii(256))
+            players[i].name = self._read("player_{}.name".format(i), lambda: d.get_bytes(256))
 
         for i in range(1, 17):
             players[i].nameID = self._read("player_{}.nameID".format(i), d.get_s32)
@@ -157,10 +162,11 @@ class Decompress:
             players[i].unknown1 = self._read("player_{}.unknown1".format(i), d.get_u32)
 
         scenario.unknown_bytes_after_civs = self._read(" scenario.unknown_bytes_after_civs", lambda: d.get_bytes(73))
-        #print(scenario.unknown_bytes_after_civs)
+        # print(scenario.unknown_bytes_after_civs)
 
-        scenario.original_filename = self._read("original_filename", lambda: d.get_str16(remove_last=False))  # original filename
-        #self.show_next_bytes(1000, d)
+        scenario.original_filename = self._read("original_filename",
+                                                lambda: d.get_str16(remove_last=False))  # original filename
+        # self.show_next_bytes(1000, d)
         logger.debug("-------------------------------------------------------")
         logger.debug("-------------------------------------------------------")
         logger.debug("-------------------------------------------------------")
@@ -192,7 +198,8 @@ class Decompress:
         logger.debug("-------------------------------------------------------")
 
         scenario.cinematics.intro = self._read("scenario.cinematics.intro", f=lambda: d.get_str16(remove_last=False))
-        scenario.cinematics.victory = self._read("scenario.cinematics.victory", f=lambda: d.get_str16(remove_last=False))
+        scenario.cinematics.victory = self._read("scenario.cinematics.victory",
+                                                 f=lambda: d.get_str16(remove_last=False))
         scenario.cinematics.defeat = self._read("scenario.cinematics.defeat", f=lambda: d.get_str16(remove_last=False))
 
         logger.debug("-------------------------------------------------------")
@@ -203,7 +210,8 @@ class Decompress:
         logger.debug("-------------------------------------------------------")
         logger.debug("-------------------------------------------------------")
 
-        scenario.background.filename = self._read("scenario.background.filename", f=lambda: d.get_str16(remove_last=False))
+        scenario.background.filename = self._read("scenario.background.filename",
+                                                  f=lambda: d.get_str16(remove_last=False))
         scenario.background.included = self._read("scenario.background.included", f=d.get_u32)
         scenario.background.width = self._read("scenario.background.width", f=d.get_u32)
         scenario.background.height = self._read("scenario.background.height", f=d.get_u32)
@@ -269,7 +277,7 @@ class Decompress:
             players[i]._unused_resource.food = self._read("player_{}.unused_resource.food".format(i), d.get_s32)
             players[i]._unused_resource.stone = self._read("player_{}.unused_resource.stone".format(i), d.get_s32)
             players[i]._unused_resource.ore = self._read("player_{}.unused_resource.ore".format(i), d.get_s32)
-            players[i]._unused_resource.padding = self._read("player_{}.unused_resource.padding".format(i),d.get_s32)
+            players[i]._unused_resource.padding = self._read("player_{}.unused_resource.padding".format(i), d.get_s32)
             players[i]._unused_resource.index = self._read("player_{}.unused_resource.index".format(i), d.get_s32)
 
         self._read("skip sep after unused resources", d.skip_separator)  # Separator 0xFFFFFF9D
@@ -316,17 +324,17 @@ class Decompress:
         tech_count = d.unpack('I' * 16)
         logger.debug("tech count : {}".format(tech_count))
         for i in range(1, 17):
-            players[i].disabledTechs = [self._read(None,d.get_u32) for _ in range(tech_count[i - 1])]
+            players[i].disabledTechs = [self._read(None, d.get_u32) for _ in range(tech_count[i - 1])]
             logger.debug("P{}={}".format(i, players[i].disabledTechs))
         unit_count = d.unpack('I' * 16)
         logger.debug("unit_count : {}".format(unit_count))
         for i in range(1, 17):
-            players[i].disabledUnits = [self._read(None,d.get_u32) for _ in range(unit_count[i - 1])]
+            players[i].disabledUnits = [self._read(None, d.get_u32) for _ in range(unit_count[i - 1])]
             logger.debug("P{}={}".format(i, players[i].disabledUnits))
         building_count = d.unpack('I' * 16)
         logger.debug("building_count : {}".format(building_count))
         for i in range(1, 17):
-            players[i].disabledBuildings = [self._read(None,d.get_u32) for _ in range(building_count[i - 1])]
+            players[i].disabledBuildings = [self._read(None, d.get_u32) for _ in range(building_count[i - 1])]
             logger.debug("P{}={}".format(i, players[i].disabledBuildings))
 
         scenario.unknown1_after_tech = self._read("scenario.unknown1_after_tech", d.get_u32)  # unused
@@ -360,13 +368,12 @@ class Decompress:
 
         scenario.map.unk_before_water_definitions = self._read("scenario.map.unk_before_water_definitions",
                                                                lambda: d.get_bytes(22))
-
         scenario.map.water_definitions = self._read("scenario.map.water_definitions",
-                                                    lambda: d.get_str16(remove_last=True))
+                                                    lambda: d.get_str16(remove_last=False))
 
         scenario.map.unk_before_empty = self._read("scenario.map.unk_before_empty", lambda: d.get_bytes(2))
 
-        scenario.map.empty = self._read("scenario.map.empty", lambda: d.get_str16(remove_last=True))
+        scenario.map.empty = self._read("scenario.map.empty", lambda: d.get_str16(remove_last=False))
 
         scenario.map.unk_before_w_h = self._read("scenario.map.unk_before_w_h", lambda: d.get_bytes(10))
 
@@ -431,7 +438,7 @@ class Decompress:
             players[i].unk1 = self._read("players[{}].unk1".format(i), d.get_float)
             players[i].unk2 = self._read("players[{}].unk2".format(i), d.get_u16)
             if players[i].unk1 == 2.0:
-                players[i].unk3 = self._read("players[{}].unk3".format(i), lambda :d.get_bytes(8))
+                players[i].unk3 = self._read("players[{}].unk3".format(i), lambda: d.get_bytes(8))
 
             players[i].unk4 = self._read("players[{}].unk4".format(i), lambda: d.get_bytes(players[i].unk2 * 44))
             players[i].unk5 = self._read("players[{}].unk5".format(i), lambda: d.get_bytes(7))
@@ -566,10 +573,10 @@ class Decompress:
                     effect.unitIds.append(unitid)
 
             trigger.effects_order = [self._read(
-                "trigger[{}].effect[{}] order".format(id_trigger,e),
+                "trigger[{}].effect[{}] order".format(id_trigger, e),
                 d.get_u32) for e in range(ne)]
 
-            nc = self._read("trigger[{}].number of conditions",d.get_s32)  # number of conditions
+            nc = self._read("trigger[{}].number of conditions".format(id_trigger), d.get_s32)  # number of conditions
             logger.debug("PROCESSING CONDITIONS")
             logger.debug("number of conditions : {}".format(nc))
 
@@ -605,7 +612,7 @@ class Decompress:
                 )
 
             trigger.conditions_order = [self._read(
-                "trigger[{}].conditions[{}] order".format(id_trigger,c),
+                "trigger[{}].conditions[{}] order".format(id_trigger, c),
                 d.get_u32) for c in range(nc)]
 
         triggers.order = [self._read(
@@ -629,9 +636,24 @@ class Decompress:
         logger.debug("-------------------------------------------------------")
         logger.debug("-------------------------------------------------------")
 
-        debug.included =  self._read("debug.included",d.get_u32)
-        debug.error = self._read("debug.error",d.get_u32)
-        if debug.included:
-            debug.raw = self._read("debug.raw", lambda :d.get_bytes(396))  # AI DEBUG file
+        debug.included = self._read("debug.included", d.get_u32)
+        debug.error = self._read("debug.error", d.get_u32)
 
-        scenario.extra_bytes_at_the_end = self._read("scenario.extra_bytes_at_the_end",lambda :d.get_bytes(1030))
+        if debug.included:
+            debug.raw = self._read("debug.raw", lambda: d.get_bytes(396))  # AI DEBUG file
+
+        scenario.extra_bytes_at_the_end = self._read("scenario.extra_bytes_at_the_end", lambda: d.get_bytes(1032))
+        if 0 < d.bytes_remaining():
+            scenario.number_of_ai_files = self._read("uk0", d.get_u32)
+            scenario.ai_files=[]
+            for i in range(scenario.number_of_ai_files):
+                fileper = self._read("fileper{}".format(i), lambda :d.get_str32(remove_last=True))
+                aifile = self._read("aifile{}".format(i), lambda :d.get_str32(remove_last=True))
+                scenario.ai_files.append((fileper,aifile))
+        else:
+            scenario.number_of_ai_files=None
+
+
+
+        if 0 < d.bytes_remaining():
+            raise Exception("it remains {} bytes\n\n{}".format(d.bytes_remaining(),d.get_bytes(d.bytes_remaining())))

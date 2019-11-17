@@ -40,10 +40,10 @@ class Decoder:
 
         return v
 
-    def getLong(self):
+    def get_long(self):
 
-        self.__pntr += 4
-        v = struct.unpack('l', self.__data[self.__pntr - 4:self.__pntr])[0]
+        self.__pntr += 8
+        v = struct.unpack('l', self.__data[self.__pntr - 8:self.__pntr])[0]
 
         return v
 
@@ -101,6 +101,9 @@ class Decoder:
             datatype, self.__data[self.__pntr:self.__pntr + size])
         self.__pntr += size
         return ret
+
+    def bytes_remaining(self):
+        return len(self.__data) - self.__pntr
 
     def offset(self):
         """Get decode position

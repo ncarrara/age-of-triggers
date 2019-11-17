@@ -97,15 +97,12 @@ class Compress:
 
     def compressData(self, f):
         encoder = Encoder(f)
-        version = self.scenario.version
-
         scenario = self.scenario
         players = self.scenario.players
         messages = self.scenario.messages
         triggers = self.scenario.triggers
         debug = self.scenario.debug
 
-        put_ascii = encoder.put_ascii
         put_u32 = encoder.put_u32
         put_s8 = encoder.put_s8
         put_u8 = encoder.put_u8
@@ -129,7 +126,7 @@ class Compress:
         put_float(scenario.version2)
 
         for i in range(1, 17):
-            put_ascii(players[i].name, 256)
+            put_bytes(players[i].name)
 
         for i in range(1, 17):
             put_s32(players[i].nameID)
@@ -353,11 +350,11 @@ class Compress:
 
         put_bytes(scenario.map.unk_before_water_definitions)  # todo default
 
-        put_str16(scenario.map.water_definitions, remove_last=True)  # todo default
+        put_str16(scenario.map.water_definitions, label="scenario.map.water_definitions",remove_last=False)  # todo default
 
         put_bytes(scenario.map.unk_before_empty)  # todo default
 
-        put_str16(scenario.map.empty, remove_last=True)  # todo default
+        put_str16(scenario.map.empty,label="scenario.map.empty", remove_last=False)  # todo default
 
         put_bytes(scenario.map.unk_before_w_h)  # todo default
 
@@ -562,6 +559,12 @@ class Compress:
 
         put_bytes(scenario.extra_bytes_at_the_end)
 
+
+        if self.scenario.number_of_ai_files is not None:
+            put_u32(self.scenario.number_of_ai_files)
+            for per,file in scenario.ai_files:
+                put_str32(per,remove_last=True)
+                put_str32(file,remove_last=True)
 
 # = open('')
 if __name__ == "__main__":

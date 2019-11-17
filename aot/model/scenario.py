@@ -49,7 +49,7 @@ class Scenario:
         info3 = "\tTRIGGERS:{}".format(len(self.triggers))
         return name + info1 + info2 + info3
 
-    def load(self, path, basename, path_decompressed_data=None):
+    def load(self, path, basename, path_header=None, path_decompressed_data=None):
         """
             load examples from file
             it doesn't save current examples
@@ -70,10 +70,10 @@ class Scenario:
         except:
             raise (IOError("File is broken or doesn't exists"))
         b = f.read()  # get bytes from file
-        d = Decompress(self, b, path_decompressed_data )  # load data
+        d = Decompress(self, b, path_header, path_decompressed_data)  # load data
         self.variables = d.variables
 
-    def save(self, path, basename,change_timestamp=True):
+    def save(self, path, basename, change_timestamp=True):
         """
             save examples as scx format
 
@@ -100,6 +100,7 @@ class Scenario:
         self.filename = None  # examples filename
         # self.version = None  # examples version
 
+        self.number_of_ai_files = None
         self.instructions = ""
         self.n_players = 8
         self.hd_constant = 1000
