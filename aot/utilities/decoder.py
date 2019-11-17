@@ -11,7 +11,7 @@ class Decoder:
         self.__pntr = 0
         self.__data = binaries
 
-    def getStr32(self,remove_last=True):
+    def get_str32(self, remove_last=True):
         self.__pntr += 4
         temp = struct.unpack('i', self.__data[self.__pntr - 4:self.__pntr])[0]
         self.__pntr += temp
@@ -20,7 +20,7 @@ class Decoder:
             full_str = full_str[:-1]
         return full_str
 
-    def getStr16(self,remove_last=True):
+    def get_str16(self, remove_last=True):
         self.__pntr += 2
         temp = struct.unpack('h', self.__data[self.__pntr - 2:self.__pntr])[0]
         self.__pntr += temp
@@ -81,7 +81,7 @@ class Decoder:
 
         return vvv
 
-    def getBytes(self, length):
+    def get_bytes(self, length):
         self.__pntr += length
         return self.__data[self.__pntr - length:self.__pntr]
 
@@ -183,7 +183,7 @@ class Decoder:
 
     def skip_separator(self):
         #sep = self.__data[self.__pntr:self.__pntr + 4]
-        sep = self.getBytes(4)
+        sep = self.get_bytes(4)
         #self.skip(4)
         if sep.hex() != "9dffffff":
             raise Exception("decoding error, missing 9dffffff sperator, found {} instead".format(sep.hex()))

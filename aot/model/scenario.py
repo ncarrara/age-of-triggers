@@ -49,7 +49,7 @@ class Scenario:
         info3 = "\tTRIGGERS:{}".format(len(self.triggers))
         return name + info1 + info2 + info3
 
-    def load(self, path, basename):
+    def load(self, path, basename,save_decompressed_data=None):
         """
             load examples from file
             it doesn't save current examples
@@ -70,7 +70,7 @@ class Scenario:
         except:
             raise (IOError("File is broken or doesn't exists"))
         b = f.read()  # get bytes from file
-        d = Decompress(self, b, False)  # load data
+        d = Decompress(self, b, path+"/"+basename if save_decompressed_data else None)  # load data
         self.variables = d.variables
 
     def save(self, path, basename):

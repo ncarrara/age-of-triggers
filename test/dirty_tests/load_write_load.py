@@ -12,20 +12,20 @@ logger = logging.getLogger(__name__)
 C = Configuration("config.json")
 
 #basename = "debug_de"
-basename = "fresh_scenario"
-#basename = "fresh"
+#basename = "fresh_scenario"
+basename = "fresh"
 
 logging.basicConfig(level=logging.DEBUG)
 
 scn = Scenario(header_type=constants.HT_AOE2_DE, size=Size.GIANT)
 scn.load(C.game_path_scenario, basename)
-scn.save(C.game_path_scenario, basename+"_save")
+scn.save(C.game_path_scenario+"/temp", basename)
 
 scn_to_check = Scenario(header_type=constants.HT_AOE2_DE, size=Size.GIANT)
-scn_to_check.load(C.game_path_scenario, basename+"_save")
+scn_to_check.load(C.game_path_scenario+"/temp", basename,save_decompressed_data=True)
 
 true_scn = Scenario(header_type=constants.HT_AOE2_DE, size=Size.GIANT)
-true_scn.load(C.game_path_scenario, basename)
+true_scn.load(C.game_path_scenario, basename,save_decompressed_data=True)
 
 logger.debug("---------------------------------------")
 logger.debug("---------------------------------------")

@@ -47,7 +47,7 @@ def deflate(data, compresslevel=9):
 
 class Decompress:
 
-    def __init__(self, scenario, bData, temp=False):
+    def __init__(self, scenario, bData, temp=None):
         """!
         """
         self.scenario = scenario
@@ -59,7 +59,7 @@ class Decompress:
         dataLenght = self.decompressData(decompressed)
         end = time.time() - start
         if temp:
-            f = open('decompressed.temp', 'wb')
+            f = open(temp+'.temp', 'wb')
             f.write(decompressed)
             f.close()
 
@@ -90,7 +90,7 @@ class Decompress:
             raise Exception("File format not supported, header type = {}".format(self.scenario.header_type))
 
         self.scenario.timestamp = self._read("header_decompressed.timestamp", d.get_s32)
-        self.scenario.instructions = self._read("header_decompressed.instructions", d.getStr32)
+        self.scenario.instructions = self._read("header_decompressed.instructions", d.get_str32)
         self._read("header_decompressed.constante", lambda: d.skip_constant(0))
         self.scenario.n_players = self._read("header_decompressed.examples.n_players", d.get_s32)
         self.scenario.hd_constant = self._read("header_decompressed.constante2", lambda: d.skip_constant(1000))
@@ -99,7 +99,7 @@ class Decompress:
         self.scenario.datasets = [self._read("header_decompressed.dataset_{}".format(i), d.get_s32)
                                   for i in range(n_datasets)]
 
-        self.scenario.author = self._read("author", d.getStr32)
+        self.scenario.author = self._read("author", d.get_str32)
         self.scenario.header_unknown = self._read("examples.header_unknown", d.get_s32)
         return d.offset()
 
@@ -107,7 +107,7 @@ class Decompress:
         return zlib.decompress(bytes, -zlib.MAX_WBITS)
 
     def show_next_bytes(self, n, decoder):
-        logger.debug(decoder.getBytes(n))
+        logger.debug(decoder.get_bytes(n))
         exit()
 
     def show_next_ints(self, n, decoder):
@@ -157,10 +157,10 @@ class Decompress:
             players[i].civilization = self._read("player_{}.civilization".format(i), d.get_u32)
             players[i].unknown1 = self._read("player_{}.unknown1".format(i), d.get_u32)
 
-        scenario.unknown_bytes_after_civs = self._read(" scenario.unknown_bytes_after_civs", lambda: d.getBytes(73))
+        scenario.unknown_bytes_after_civs = self._read(" scenario.unknown_bytes_after_civs", lambda: d.get_bytes(73))
         #print(scenario.unknown_bytes_after_civs)
 
-        scenario.original_filename = self._read("original_filename", lambda: d.getStr16(remove_last=False))  # original filename
+        scenario.original_filename = self._read("original_filename", lambda: d.get_str16(remove_last=False))  # original filename
         #self.show_next_bytes(1000, d)
         logger.debug("-------------------------------------------------------")
         logger.debug("-------------------------------------------------------")
@@ -177,12 +177,12 @@ class Decompress:
         messages.history.id = self._read("messages.history.id", f=d.get_s32)
         messages.scouts.id = self._read("messages.scouts.id", f=d.get_s32)
 
-        messages.objectives.text = self._read("messages.objectives.text", f=lambda: d.getStr16(remove_last=False))
-        messages.hints.text = self._read("messages.hints.text", f=lambda: d.getStr16(remove_last=False))
-        messages.victory.text = self._read("messages.victory.text", f=lambda: d.getStr16(remove_last=False))
-        messages.loss.text = self._read("messages.loss.text", f=lambda: d.getStr16(remove_last=False))
-        messages.history.text = self._read("messages.history.text", f=lambda: d.getStr16(remove_last=False))
-        messages.scouts.text = self._read("messages.scouts.text ", f=lambda: d.getStr16(remove_last=False))
+        messages.objectives.text = self._read("messages.objectives.text", f=lambda: d.get_str16(remove_last=False))
+        messages.hints.text = self._read("messages.hints.text", f=lambda: d.get_str16(remove_last=False))
+        messages.victory.text = self._read("messages.victory.text", f=lambda: d.get_str16(remove_last=False))
+        messages.loss.text = self._read("messages.loss.text", f=lambda: d.get_str16(remove_last=False))
+        messages.history.text = self._read("messages.history.text", f=lambda: d.get_str16(remove_last=False))
+        messages.scouts.text = self._read("messages.scouts.text ", f=lambda: d.get_str16(remove_last=False))
 
         logger.debug("-------------------------------------------------------")
         logger.debug("-------------------------------------------------------")
@@ -192,9 +192,9 @@ class Decompress:
         logger.debug("-------------------------------------------------------")
         logger.debug("-------------------------------------------------------")
 
-        scenario.cinematics.intro = self._read("scenario.cinematics.intro", f=lambda: d.getStr16(remove_last=False))
-        scenario.cinematics.victory = self._read("scenario.cinematics.victory", f=lambda: d.getStr16(remove_last=False))
-        scenario.cinematics.defeat = self._read("scenario.cinematics.defeat", f=lambda: d.getStr16(remove_last=False))
+        scenario.cinematics.intro = self._read("scenario.cinematics.intro", f=lambda: d.get_str16(remove_last=False))
+        scenario.cinematics.victory = self._read("scenario.cinematics.victory", f=lambda: d.get_str16(remove_last=False))
+        scenario.cinematics.defeat = self._read("scenario.cinematics.defeat", f=lambda: d.get_str16(remove_last=False))
 
         logger.debug("-------------------------------------------------------")
         logger.debug("-------------------------------------------------------")
@@ -204,8 +204,7 @@ class Decompress:
         logger.debug("-------------------------------------------------------")
         logger.debug("-------------------------------------------------------")
 
-        scenario.background.filename = self._read("scenario.background.filename",
-                                                  f=lambda: d.getStr16(remove_last=False))
+        scenario.background.filename = self._read("scenario.background.filename", f=lambda: d.get_str16(remove_last=False))
         scenario.background.included = self._read("scenario.background.included", f=d.get_u32)
         scenario.background.width = self._read("scenario.background.width", f=d.get_u32)
         scenario.background.height = self._read("scenario.background.height", f=d.get_u32)
@@ -223,8 +222,9 @@ class Decompress:
             scenario.yPels = self._read("scenario.yPels", d.get_s32)
             scenario.colors = self._read("scenario.colors", d.get_u32)
             scenario.iColors = self._read("scenario.iColors", d.get_s32)
-            scenario.colorTable = self._read("scenario.colorTable", lambda: d.getBytes(scenario.colors * 4))
-            scenario.rawData = self._read("scenario.rawData", lambda: d.getBytes(scenario.sizeImage))
+            scenario.colorTable = self._read("scenario.colorTable", lambda: d.get_bytes(scenario.colors * 4))
+            scenario.rawData = self._read("scenario.rawData", lambda: d.get_bytes(scenario.sizeImage))
+
         logger.debug("-------------------------------------------------------")
         logger.debug("-------------------------------------------------------")
         logger.debug("-------------------------------------------------------")
@@ -235,23 +235,22 @@ class Decompress:
         for i in range(1, 17):
             players[i].unknown_constant = self._read("players[{}].unknown_constant".format(i), d.get_u32)
 
-        # section: PLAYER DATA 2
         for i in range(1, 17):
             if i == 9:
                 i = 0  # GAIA is 9th
             if i > 9:
                 i -= 1
-            players[i].vc_names = self._read("player_{}.vc_names".format(i), lambda: d.getStr16(remove_last=False))
+            players[i].vc_names = self._read("player_{}.vc_names".format(i), lambda: d.get_str16(remove_last=False))
 
         for i in range(1, 17):
             if i == 9:
                 i = 0  # GAIA is 9th
             if i > 9:
                 i -= 1
-            players[i].unknown8bytes = self._read("players[{}].unknown8bytes".format(i), lambda: d.getBytes(8))
-            players[i].cty_names = self._read("player_{}.cty_names".format(i), lambda: d.getStr32(remove_last=False))
+            players[i].unknown8bytes = self._read("players[{}].unknown8bytes".format(i), lambda: d.get_bytes(8))
+            players[i].cty_names = self._read("player_{}.cty_names".format(i), lambda: d.get_str32(remove_last=False))
 
-        self.scenario.unk_after_civs = self._read("scenario.unk_after_civs", lambda: d.getBytes(20))
+        self.scenario.unk_after_civs = self._read("scenario.unk_after_civs", lambda: d.get_bytes(20))
 
         logger.debug("-------------------------------------------------------")
         logger.debug("-------------------------------------------------------")
@@ -271,8 +270,7 @@ class Decompress:
             players[i]._unused_resource.food = self._read("player_{}.unused_resource.food".format(i), d.get_s32)
             players[i]._unused_resource.stone = self._read("player_{}.unused_resource.stone".format(i), d.get_s32)
             players[i]._unused_resource.ore = self._read("player_{}.unused_resource.ore".format(i), d.get_s32)
-            players[i]._unused_resource.padding = self._read("player_{}.unused_resource.padding".format(i),
-                                                             d.get_s32)
+            players[i]._unused_resource.padding = self._read("player_{}.unused_resource.padding".format(i),d.get_s32)
             players[i]._unused_resource.index = self._read("player_{}.unused_resource.index".format(i), d.get_s32)
 
         self._read("skip sep after unused resources", d.skip_separator)  # Separator 0xFFFFFF9D
@@ -300,7 +298,7 @@ class Decompress:
             for j in range(1, 17):
                 players[i].diplomacy[j] = self._read("P{} diplo for P{} is :".format(i, j), d.get_s32)
 
-        scenario.big_skip_after_diplo = self._read("big_skip_after_diplo", lambda: d.getBytes(11520))  # unused space
+        scenario.big_skip_after_diplo = self._read("big_skip_after_diplo", lambda: d.get_bytes(11520))  # unused space
         d.skip_separator()  # separator
 
         for i in range(1, 17):
@@ -332,9 +330,9 @@ class Decompress:
             players[i].disabledBuildings = [d.get_s32() for _ in range(building_count[i - 1])]
             logger.debug("P{}={}".format(i, players[i].disabledBuildings))
 
-        scenario.unknown1_after_tech = self._read("scenario.unknown1_after_tech", d.get_s32)  # unused
-        scenario.unknown2_after_tech = self._read("scenario.unknown2_after_tech", d.get_s32)  # unused
-        scenario.is_all_tech = self._read("scenario.is_all_tech", d.get_s32)  # All tech
+        scenario.unknown1_after_tech = self._read("scenario.unknown1_after_tech", d.get_u32)  # unused
+        scenario.unknown2_after_tech = self._read("scenario.unknown2_after_tech", d.get_u32)  # unused
+        scenario.is_all_tech = self._read("scenario.is_all_tech", d.get_u32)  # All tech
 
         logger.debug("-------------------------------------------------------")
         logger.debug("-------------------------------------------------------")
@@ -362,16 +360,16 @@ class Decompress:
         scenario.map.aiType = self._read("examples.map.aiType", d.get_u32)
 
         scenario.map.unk_before_water_definitions = self._read("scenario.map.unk_before_water_definitions",
-                                                               lambda: d.getBytes(22))
+                                                               lambda: d.get_bytes(22))
 
         scenario.map.water_definitions = self._read("scenario.map.water_definitions",
-                                                    lambda: d.getStr16(remove_last=True))
+                                                    lambda: d.get_str16(remove_last=True))
 
-        scenario.map.unk_before_empty = self._read("scenario.map.unk_before_empty", lambda: d.getBytes(2))
+        scenario.map.unk_before_empty = self._read("scenario.map.unk_before_empty", lambda: d.get_bytes(2))
 
-        scenario.map.empty = self._read("scenario.map.empty", lambda: d.getStr16(remove_last=True))
+        scenario.map.empty = self._read("scenario.map.empty", lambda: d.get_str16(remove_last=True))
 
-        scenario.map.unk_before_w_h = self._read("scenario.map.unk_before_w_h", lambda: d.getBytes(10))
+        scenario.map.unk_before_w_h = self._read("scenario.map.unk_before_w_h", lambda: d.get_bytes(10))
 
         w = self._read("w_map", d.get_s32)
         h = self._read("h_map", d.get_s32)
@@ -416,7 +414,7 @@ class Decompress:
         logger.debug("-------------------------------------------------------")
         logger.debug("-------------------------------------------------------")
         for i in range(1, 9):  # only for playable players
-            players[i].constName = self._read("players[{}].constName".format(i), d.getStr16)
+            players[i].constName = self._read("players[{}].constName".format(i), d.get_str16)
             players[i].camera.x = self._read("players[{}].camera.x".format(i), d.get_float)
             players[i].camera.y = self._read("players[{}].camera.y".format(i), d.get_float)
             players[i].camera.unknown1 = self._read("players[{}].camera.unknown1".format(i), d.get_s16)
@@ -424,7 +422,7 @@ class Decompress:
             players[i].allyVictory = self._read("players[{}].allyVictory".format(i), d.get_s8)
 
             players[i].dip = self._read("players[{}].dip".format(i), d.get_u16)
-            players[i].unk0 = self._read(None, lambda: d.getBytes(
+            players[i].unk0 = self._read(None, lambda: d.get_bytes(
                 players[i].dip))  # 0 = allied, 1 = neutral, 2 = ? , 3 = enemy
 
             for j in range(9):
@@ -433,13 +431,13 @@ class Decompress:
             players[i].unk1 = self._read("players[{}].unk1".format(i), d.get_float)
             players[i].unk2 = self._read("players[{}].unk2".format(i), d.get_u16)
             if players[i].unk1 == 2.0:
-                players[i].unk3 = self._read("players[{}].unk3".format(i), lambda :d.getBytes(8))
+                players[i].unk3 = self._read("players[{}].unk3".format(i), lambda :d.get_bytes(8))
 
-            players[i].unk4 = self._read("players[{}].unk4".format(i), lambda: d.getBytes(players[i].unk2 * 44))
-            players[i].unk5 = self._read("players[{}].unk5".format(i), lambda: d.getBytes(7))
-            players[i].unk6 = self._read("players[{}].unk6".format(i), lambda: d.getBytes(4))
+            players[i].unk4 = self._read("players[{}].unk4".format(i), lambda: d.get_bytes(players[i].unk2 * 44))
+            players[i].unk5 = self._read("players[{}].unk5".format(i), lambda: d.get_bytes(7))
+            players[i].unk6 = self._read("players[{}].unk6".format(i), lambda: d.get_bytes(4))
 
-        scenario.data3_unk = self._read("scenario.data3_unk", lambda: d.getBytes(3))
+        scenario.data3_unk = self._read("scenario.data3_unk", lambda: d.get_bytes(3))
 
         logger.debug("-------------------------------------------------------")
         logger.debug("-------------------------------------------------------")
@@ -466,7 +464,7 @@ class Decompress:
                                    inId=self._read("inId [{}][{}]".format(i, u), d.get_s32))
 
         self.scenario.ukn_9_bytes_before_triggers = self._read("scenario.ukn_9_bytes_before_triggers",
-                                                               lambda: d.getBytes(9))
+                                                               lambda: d.get_bytes(9))
 
         logger.debug("-------------------------------------------------------")
         logger.debug("-------------------------------------------------------")
@@ -509,10 +507,10 @@ class Decompress:
             logger.debug("trigger[{}].unknowns={}".format(id_trigger, trigger.unknowns))
             trigger.mute_objectives = self._read("trigger[{}].mute_objectives".format(id_trigger), d.get_s8)
             trigger.trigger_description["text"] = \
-                self._read("trigger[{}].trigger_description[\"text\"]".format(id_trigger), d.getStr32)
-            trigger.name = self._read("trigger[{}].name".format(id_trigger), d.getStr32)
+                self._read("trigger[{}].trigger_description[\"text\"]".format(id_trigger), d.get_str32)
+            trigger.name = self._read("trigger[{}].name".format(id_trigger), d.get_str32)
             trigger.short_description["text"] = \
-                self._read("trigger[{}].short_description[\"text\"]".format(id_trigger), d.getStr32)
+                self._read("trigger[{}].short_description[\"text\"]".format(id_trigger), d.get_str32)
 
             logger.debug("PROCESSING EFFECTS")
             ne = self._read("number of effect({})".format(id_trigger), d.get_s32)  # number of effects
@@ -560,8 +558,8 @@ class Decompress:
                                                   d.get_s32)
 
                 effect.unknown2 = self._read("trigger[{}].effect[{}].unknown2".format(id_trigger, e), d.get_s32)
-                effect.text = self._read("trigger[{}].effect[{}].text".format(id_trigger, e), d.getStr32)
-                effect.filename = self._read("trigger[{}].effect[{}].filename".format(id_trigger, e), d.getStr32)
+                effect.text = self._read("trigger[{}].effect[{}].text".format(id_trigger, e), d.get_str32)
+                effect.filename = self._read("trigger[{}].effect[{}].filename".format(id_trigger, e), d.get_str32)
 
                 for k in range(effect.selectedCount):
                     unitid = self._read("trigger[{}].effect[{}].unitid[{}]".format(id_trigger, e, k), d.get_s32)
@@ -634,4 +632,4 @@ class Decompress:
         debug.included =  self._read("debug.included",d.get_u32)
         debug.error = self._read("debug.error",d.get_u32)
         if debug.included:
-            debug.raw = self._read("debug.raw", lambda :d.getBytes(396))  # AI DEBUG file
+            debug.raw = self._read("debug.raw", lambda :d.get_bytes(396))  # AI DEBUG file

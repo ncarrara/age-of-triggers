@@ -51,17 +51,20 @@ class Compress:
         self.scenario = scenario
         # self.version = version
 
-        f1 = open('c1.temp', 'wb')
-        f2 = open('c2.temp', 'wb')
+        temp0 = "{}_0.temp".format(scenario.filename)
+        temp1 = "{}_1.temp".format(scenario.filename)
+
+        f1 = open(temp0, 'wb')
+        f2 = open(temp1, 'wb')
         self.compressHeader(f1)
         self.compressData(f2)
         f1.close()
         f2.close()
-        data = open('c1.temp', 'rb').read()
-        d = deflate(open('c2.temp', 'rb').read())
+        data = open(temp0, 'rb').read()
+        d = deflate(open(temp1, 'rb').read())
         open(path, 'wb').write(data + d)
-        os.remove("c1.temp")
-        os.remove("c2.temp")
+        os.remove(temp0)
+        os.remove(temp1)
 
     def compressHeader(self, f):
         encoder = Encoder(f)
@@ -159,6 +162,7 @@ class Compress:
         put_s32(messages.loss.id)
         put_s32(messages.history.id)
         put_s32(messages.scouts.id)
+
         put_str16(messages.objectives.text, remove_last=False)
         put_str16(messages.hints.text, remove_last=False)
         put_str16(messages.victory.text, remove_last=False)
@@ -185,6 +189,7 @@ class Compress:
         logger.debug("-------------------------------------------------------")
         logger.debug("-------------------------------------------------------")
         logger.debug("-------------------------------------------------------")
+
         put_str16(scenario.background.filename, remove_last=False)
         put_u32(scenario.background.included)
         put_u32(scenario.background.width)
