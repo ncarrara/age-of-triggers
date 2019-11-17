@@ -60,8 +60,8 @@ class Effect:
         self.selectedCount = selectedCount
         self.unitId = unitId
         self.unitName = unit_cons
-        self.sourcePlayer = sourcePlayer
-        self.targetPlayer = targetPlayer
+        self.source_player = sourcePlayer
+        self.target_player = targetPlayer
         self.tech = tech
         self.stringId = stringId
         self.unknown1 = unknown1
@@ -97,8 +97,8 @@ class Effect:
         data["selectedCount"] = self.selectedCount
         data["unitId"] = self.unitId
         data["unitName"] = self.unitName
-        data["sourcePlayer"] = self.sourcePlayer
-        data["targetPlayer"] = self.targetPlayer
+        data["sourcePlayer"] = self.source_player
+        data["targetPlayer"] = self.target_player
         data["tech"] = self.tech
         data["stringId"] = self.stringId
         data["unknown1"] = self.unknown1

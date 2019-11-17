@@ -113,6 +113,7 @@ class Scenario:
         self.units = Units()
         self.triggers = Triggers()
         self.units = Units()
+        self.debug = Debug()
 
         for i in range(len(self.players)):
             self.players[i].units = self.units[i]
