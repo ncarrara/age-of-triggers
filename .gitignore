@@ -12,3 +12,5 @@ aot/utilities/__pycache__/
 test/__pycache__/
 
 aot/model/enums/__pycache__/
+
+aot/model/controller/__pycache__/
