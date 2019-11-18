@@ -9,7 +9,5 @@ pip3 install git+https://github.com/ncarrara/aoe2-meta-triggers.git
 
 
 # TODO
-- [DONE] support DE files
 - [WIP] clean code and make it pep8
-- [DONE] encoding with strings. String send by message, or trigger name etc are display wrongly on the editor. And might disapear when playing the game (sendChat for example, sed an invisible text)
-- [DONE] Inverse condition not supported (for aoe2scenario).
+
