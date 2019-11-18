@@ -5,14 +5,18 @@ from aot.utilities.configuration import Configuration
 from aot.model.enums import constants
 import logging
 
-#basename = "debug_de"
+
 basename = "fresh_scenario"
 #basename = "fresh_scenario2"
 basename = "fresh_scenario3"
+basename = "large"
 
-C = Configuration("config.json")
+basename = "debug_de"
+basename = "large2"
+basename = "template_small"
+C = Configuration("test/dirty_tests/config.json")
 
 logging.basicConfig(level=logging.DEBUG)
 
-scn = Scenario(header_type=constants.HT_AOE2_DE, size=Size.GIANT)
+scn = Scenario()
 scn.load(C.game_path_scenario, basename)

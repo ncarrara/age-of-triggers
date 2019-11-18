@@ -82,6 +82,8 @@ class Decoder:
         return vvv
 
     def get_bytes(self, length):
+        if length==0:
+            raise Exception("cannot read 0 bytes")
         if self.__pntr+length > len(self.__data):
             raise Exception("Cannot access extra bytes, data has len {} and you want to access {}. Maximum number of Bytes requestable: {}".format(len(self.__data),self.__pntr+length,len(self.__data)-self.__pntr))
         self.__pntr += length

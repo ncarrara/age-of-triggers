@@ -29,10 +29,31 @@ class Scenario:
     def get_width(self):
         return self.map.width
 
-    def __init__(self, header_type=HT_AOE2_DE, size=Size.GIANT):
+    def __init__(self, size=Size.GIANT):
 
         self._clear(size=size)
-        self.header_type = header_type
+
+        # have to load template because all variables are not set # # TODO when from scratch
+
+    def load_template(self, size=Size.GIANT):
+        self._clear(size=size)
+        if size is not None:
+            if size is Size.GIANT:
+                self.load("templates", "template_giant")
+            elif size is Size.NORMAL:
+                self.load("templates", "template_normal")
+            elif size is Size.MEDIUM:
+                self.load("templates", "template_medium")
+            elif size is Size.LARGE:
+                self.load("templates", "template_large")
+            elif size is Size.TINY:
+                self.load("templates", "template_tiny")
+            elif size is Size.SMALL:
+                self.load("templates", "template_small")
+            elif size is Size.LUDAKRIS:
+                self.load("templates", "template_ludicrous")
+            else:
+                raise Exception("missing template for size {}".format(size))
 
     def add(self, trigger):
         if issubclass(trigger.__class__, Trigger):
@@ -71,7 +92,6 @@ class Scenario:
             raise (IOError("File is broken or doesn't exists"))
         b = f.read()  # get bytes from file
         d = Decompress(self, b, path_header, path_decompressed_data)  # load data
-        self.variables = d.variables
 
     def save(self, path, basename, change_timestamp=True):
         """

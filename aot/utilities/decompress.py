@@ -50,10 +50,10 @@ class Decompress:
     def __init__(self, scenario, bData, path_header=None,path_decompressed_data=None):
         self.scenario = scenario
         self.key_counter = 0
-        self.variables = {}
-        start = time.time()
-        headerLength = self.decompressHeader(bData)
-        decompressed = self.unzip(bData[headerLength:])
+        self.scenario.variables = {}
+        self.scenario.variables_header = {}
+        self.scenario.header_length = self.decompressHeader(bData)
+        decompressed = self.unzip(bData[scenario.header_length:])
         self.decompressData(decompressed)
         if path_decompressed_data:
             f = open(path_decompressed_data, 'wb')
@@ -62,21 +62,22 @@ class Decompress:
 
         if path_header:
             f = open(path_header, 'wb')
-            f.write(bData[:headerLength])
+            f.write(bData[:scenario.header_length])
             f.close()
 
-    def _read(self, key=None, f=None):
+    def _read(self, key=None, f=None,header=False,log=True):
+        if header:
+            variables = self.scenario.variables_header
+        else:
+            variables = self.scenario.variables
         offset = self.decoder.offset()
         var = f()
-        toprint = True
-        if key is None:
-            key = self.key_counter
-            self.key_counter += 1
-            toprint = False
-        if key in self.variables:
-            raise Exception("duplicate key : {}".format(key))  # use hash set better
-        self.variables[key] = var
-        if toprint:
+        if offset in variables:
+            for k,v in variables.items():
+                print(k,v)
+            raise Exception("duplicate offset : {}".format(offset))  # use hash set better
+        variables[offset] = (key,var)
+        if log:
             str_var = str(var)
             if len(str_var) > 30:  # and len(str_var) < 100:
                 str_var = str_var[:15] + " [...] " + str_var[-15:]
@@ -87,24 +88,25 @@ class Decompress:
         d = Decoder(data)
         self.decoder = d
 
-        self.scenario.version = self._read("header_decompressed.examples.version", lambda: d.getAscii(length=4))
-        length = self._read("header_decompressed.lenght", d.get_s32)  # header length
-        self.scenario.header_type = self._read("header_decompressed.header_type", d.get_s32)
-        if self.scenario.header_type not in [HT_AOE2_DE, HT_AOE2_HD]:
+        self.scenario.version = self._read("header_decompressed.examples.version", lambda: d.getAscii(length=4),header=True)
+        length = self._read("header_decompressed.lenght", d.get_s32,header=True)  # header length
+        self.scenario.header_type = self._read("header_decompressed.header_type", d.get_s32,header=True)
+
+        if self.scenario.header_type not in [HT_AOE2_DE]:
             raise Exception("File format not supported, header type = {}".format(self.scenario.header_type))
 
-        self.scenario.timestamp = self._read("header_decompressed.timestamp", d.get_s32)
-        self.scenario.instructions = self._read("header_decompressed.instructions", d.get_str32)
-        self._read("header_decompressed.constante", lambda: d.skip_constant(0))
-        self.scenario.n_players = self._read("header_decompressed.examples.n_players", d.get_s32)
-        self.scenario.hd_constant = self._read("header_decompressed.constante2", lambda: d.skip_constant(1000))
-        self.scenario.use_expansion = self._read("header_decompressed.use_expansion", d.get_s32)
-        n_datasets = self._read("header_decompressed.n_datasets", d.get_s32)
-        self.scenario.datasets = [self._read("header_decompressed.dataset_{}".format(i), d.get_s32)
+        self.scenario.timestamp = self._read("header_decompressed.timestamp", d.get_s32,header=True)
+        self.scenario.instructions = self._read("header_decompressed.instructions", d.get_str32,header=True)
+        self.scenario.unk_constant1 = self._read("header_decompressed.constant1", lambda: d.skip_constant(0),header=True)
+        self.scenario.n_players = self._read("header_decompressed.examples.n_players", d.get_s32,header=True)
+        self.scenario.unk_constant2 = self._read("header_decompressed.constant2", lambda: d.skip_constant(1000),header=True)
+        self.scenario.use_expansion = self._read("header_decompressed.use_expansion", d.get_s32,header=True)
+        n_datasets = self._read("header_decompressed.n_datasets", d.get_s32,header=True)
+        self.scenario.datasets = [self._read("header_decompressed.dataset_{}".format(i), d.get_s32,header=True)
                                   for i in range(n_datasets)]
 
-        self.scenario.author = self._read("author", d.get_str32)
-        self.scenario.header_unknown = self._read("examples.header_unknown", d.get_s32)
+        self.scenario.author = self._read("author", d.get_str32,header=True)
+        self.scenario.header_unknown = self._read("examples.header_unknown", d.get_s32,header=True)
         return d.offset()
 
     def unzip(self, bytes):
@@ -324,17 +326,17 @@ class Decompress:
         tech_count = d.unpack('I' * 16)
         logger.debug("tech count : {}".format(tech_count))
         for i in range(1, 17):
-            players[i].disabledTechs = [self._read(None, d.get_u32) for _ in range(tech_count[i - 1])]
+            players[i].disabledTechs = [self._read("players[{}].disabledTechs".format(i), d.get_u32) for _ in range(tech_count[i - 1])]
             logger.debug("P{}={}".format(i, players[i].disabledTechs))
         unit_count = d.unpack('I' * 16)
         logger.debug("unit_count : {}".format(unit_count))
         for i in range(1, 17):
-            players[i].disabledUnits = [self._read(None, d.get_u32) for _ in range(unit_count[i - 1])]
+            players[i].disabledUnits = [self._read("players[{}].disabledUnits".format(i), d.get_u32) for _ in range(unit_count[i - 1])]
             logger.debug("P{}={}".format(i, players[i].disabledUnits))
         building_count = d.unpack('I' * 16)
         logger.debug("building_count : {}".format(building_count))
         for i in range(1, 17):
-            players[i].disabledBuildings = [self._read(None, d.get_u32) for _ in range(building_count[i - 1])]
+            players[i].disabledBuildings = [self._read("players[{}].disabledBuildings".format(i), d.get_u32) for _ in range(building_count[i - 1])]
             logger.debug("P{}={}".format(i, players[i].disabledBuildings))
 
         scenario.unknown1_after_tech = self._read("scenario.unknown1_after_tech", d.get_u32)  # unused
@@ -384,13 +386,13 @@ class Decompress:
         scenario.map.resize(w, h)
 
         for i, tile in enumerate(self.scenario.tiles):
-            tile.type = self._read(None, d.get_u8)
-            tile.elevation = self._read(None, d.get_u8)
-            tile.unknown1 = self._read(None, d.get_u8)
-            tile.unknown2 = self._read(None, d.get_u8)
-            tile.unknown3 = self._read(None, d.get_u8)
-            tile.layer_type = self._read(None, d.get_u8)
-            tile.is_layering = self._read(None, d.get_u8)  # 0 if yes
+            tile.type = self._read("tile[{}].type".format(i), d.get_u8,log=False)
+            tile.elevation = self._read("tile[{}].elevation".format(i), d.get_u8,log=False)
+            tile.unknown1 = self._read("tile[{}].unknown1".format(i), d.get_u8,log=False)
+            tile.unknown2 = self._read("tile[{}].unknown2".format(i), d.get_u8,log=False)
+            tile.unknown3 = self._read("tile[{}].unknown3".format(i), d.get_u8,log=False)
+            tile.layer_type = self._read("tile[{}].layer_type".format(i), d.get_u8,log=False)
+            tile.is_layering = self._read("tile[{}].is_layering".format(i), d.get_u8,log=False)  # 0 if yes
 
         d.skip_constant(9)  # number of unit sections, N. I've always seen = 9.
 
@@ -429,7 +431,7 @@ class Decompress:
             players[i].allyVictory = self._read("players[{}].allyVictory".format(i), d.get_s8)
 
             players[i].dip = self._read("players[{}].dip".format(i), d.get_u16)
-            players[i].unk0 = self._read(None, lambda: d.get_bytes(players[i].dip))
+            players[i].unk0 = self._read("players[{}].unk0".format(i), lambda: d.get_bytes(players[i].dip))
             # 0 = allied, 1 = neutral, 2 = ? , 3 = enemy
 
             for j in range(9):
@@ -440,11 +442,13 @@ class Decompress:
             if players[i].unk1 == 2.0:
                 players[i].unk3 = self._read("players[{}].unk3".format(i), lambda: d.get_bytes(8))
 
-            players[i].unk4 = self._read("players[{}].unk4".format(i), lambda: d.get_bytes(players[i].unk2 * 44))
+            if players[i].unk2 >0:
+                players[i].unk4 = self._read("players[{}].unk4".format(i), lambda: d.get_bytes(players[i].unk2 * 44))
             players[i].unk5 = self._read("players[{}].unk5".format(i), lambda: d.get_bytes(7))
             players[i].unk6 = self._read("players[{}].unk6".format(i), lambda: d.get_bytes(4))
 
-        scenario.data3_unk = self._read("scenario.data3_unk", lambda: d.get_bytes(3))
+
+
 
         logger.debug("-------------------------------------------------------")
         logger.debug("-------------------------------------------------------")
@@ -453,11 +457,10 @@ class Decompress:
         logger.debug("-------------------------------------------------------")
         logger.debug("-------------------------------------------------------")
         logger.debug("-------------------------------------------------------")
-        scenario.unk_unit_section = self._read("scenario.unk_unit_section", d.get_s8)
-        for i in range(1, 9):
+
+        for i in range(0, 9):
 
             number_of_units = self._read("number_of_units[{}]".format(i), d.get_u32)
-
             for u in range(number_of_units):
                 scenario.units.new(owner=i,
                                    x=self._read("x [{}][{}]".format(i, u), d.get_float),
@@ -492,25 +495,25 @@ class Decompress:
             trigger.loop = self._read("trigger[{}].loop".format(id_trigger), d.get_s8)
             trigger.trigger_description["string_table_id"] = \
                 self._read("trigger[{}].trigger_description[\"string_table_id\"]".format(id_trigger), d.get_s8)
-            trigger.unknowns[0] = self._read(None, d.get_s8)
-            trigger.unknowns[1] = self._read(None, d.get_s8)
-            trigger.unknowns[2] = self._read(None, d.get_s8)
+            trigger.unknowns[0] = self._read("trigger.unknowns[0]", d.get_s8)
+            trigger.unknowns[1] = self._read("trigger.unknowns[1]", d.get_s8)
+            trigger.unknowns[2] = self._read("trigger.unknowns[2]", d.get_s8)
             trigger.display_as_objective = \
                 self._read("trigger[{}].display_as_objective".format(id_trigger), d.get_s8)
             trigger.description_order = self._read("[id={}] trigger.description_order".format(id_trigger), d.get_u32)
             trigger.make_header = self._read("[id={}] trigger.make_header".format(id_trigger), d.get_s8)
             trigger.short_description["string_table_id"] = \
                 self._read("trigger[{}].short_description[\"string_table_id\"]".format(id_trigger), d.get_s8)
-            trigger.unknowns[3] = self._read(None, d.get_s8)
-            trigger.unknowns[4] = self._read(None, d.get_s8)
-            trigger.unknowns[5] = self._read(None, d.get_s8)
+            trigger.unknowns[3] = self._read("trigger.unknowns[3]", d.get_s8)
+            trigger.unknowns[4] = self._read("trigger.unknowns[4]", d.get_s8)
+            trigger.unknowns[5] = self._read("trigger.unknowns[5]", d.get_s8)
             trigger.short_description["display_on_screen"] = \
                 self._read("trigger[{}].short_description[\"display_on_screen\"]".format(id_trigger), d.get_s8)
-            trigger.unknowns[6] = self._read(None, d.get_s8)
-            trigger.unknowns[7] = self._read(None, d.get_s8)
-            trigger.unknowns[8] = self._read(None, d.get_s8)
-            trigger.unknowns[9] = self._read(None, d.get_s8)
-            trigger.unknowns[10] = self._read(None, d.get_s8)
+            trigger.unknowns[6] = self._read("trigger.unknowns[6]", d.get_s8)
+            trigger.unknowns[7] = self._read("trigger.unknowns[7]", d.get_s8)
+            trigger.unknowns[8] = self._read("trigger.unknowns[8]", d.get_s8)
+            trigger.unknowns[9] = self._read("trigger.unknowns[9]", d.get_s8)
+            trigger.unknowns[10] = self._read("trigger.unknowns[10]", d.get_s8)
             logger.debug("trigger[{}].unknowns={}".format(id_trigger, trigger.unknowns))
             trigger.mute_objectives = self._read("trigger[{}].mute_objectives".format(id_trigger), d.get_s8)
             trigger.trigger_description["text"] = \
@@ -642,18 +645,23 @@ class Decompress:
         if debug.included:
             debug.raw = self._read("debug.raw", lambda: d.get_bytes(396))  # AI DEBUG file
 
-        scenario.extra_bytes_at_the_end = self._read("scenario.extra_bytes_at_the_end", lambda: d.get_bytes(1032))
-        if 0 < d.bytes_remaining():
-            scenario.number_of_ai_files = self._read("uk0", d.get_u32)
+
+        scenario.extra_bytes_at_the_end = self._read("scenario.extra_bytes_at_the_end", lambda: d.get_bytes(1024))
+
+        scenario.has_embedded_ai_file = self._read("scenario.has_embemded_ai_file", d.get_u8)
+
+        scenario.unk_before_embedded = self._read("scenario.unk_before_embedded", lambda: d.get_bytes(7))
+
+        if scenario.has_embedded_ai_file:
+
+            scenario.number_of_ai_files = self._read(scenario.number_of_ai_files, d.get_u32)
             scenario.ai_files=[]
             for i in range(scenario.number_of_ai_files):
                 fileper = self._read("fileper{}".format(i), lambda :d.get_str32(remove_last=True))
                 aifile = self._read("aifile{}".format(i), lambda :d.get_str32(remove_last=True))
                 scenario.ai_files.append((fileper,aifile))
-        else:
-            scenario.number_of_ai_files=None
 
-
+        #exit()
 
         if 0 < d.bytes_remaining():
             raise Exception("it remains {} bytes\n\n{}".format(d.bytes_remaining(),d.get_bytes(d.bytes_remaining())))

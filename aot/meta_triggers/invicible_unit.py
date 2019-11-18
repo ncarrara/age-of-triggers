@@ -1,5 +1,6 @@
-from aot import Trigger, DamageObject, BuffHP
 from aot.meta_triggers.metatrigger import MetaTrigger
+from aot.model.effect import DamageObject, BuffHP
+from aot.model.trigger import Trigger
 
 
 class InvicibleUnit(MetaTrigger):

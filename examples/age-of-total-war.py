@@ -1,27 +1,34 @@
-from aot import Scenario, Size, UnitConstant, Trigger, Timer, PlayerEnum, RemoveObject, SendInstruction, EnumTile, \
-    MoveObjectToPoint, CaptureUnit, GiveExtraPop, GiveHeadroom, CreateObject, ActivateTrigger, UnitInArea, ObjectInArea, \
-    Not, DesactivateTrigger, ChangeUnitOwnership, UnitType, RemoveObjectByType, PayGold, GiveGold, PayStone, GiveStone, \
-    PayWood, GiveWood, PayFood, GiveFood, Color, SendChat, MoveCamera, BuffHP
-from aot.metatriggers.api import NoHouseNeeded, InvicibleUnit
+from aot.meta_triggers.invicible_unit import InvicibleUnit
+from aot.meta_triggers.no_house_needed import NoHouseNeeded
+from aot.model.condition import *
+from aot.model.effect import *
+from aot.model.enums.player import PlayerEnum
+from aot.model.enums.sizes import Size
+from aot.model.enums.tile import EnumTile
+from aot.model.enums.unit import UnitConstant, UnitType
+from aot.model.scenario import Scenario
+from aot.model.trigger import Trigger
 from aot.utilities.configuration import Configuration
 
-C = Configuration("aot/api/configuration_de.json")
+C = Configuration("examples/configuration_de.json")
 
 scn = Scenario(size=Size.LARGE)
-#scn.load(C.game_path_scenario+"/template.aoe2scenario")
-TIME_TO_TRAIN_UNITS = 200
+scn.load_template(Size.LARGE)
+
+# scn.load(C.game_path_scenario+"/template.aoe2scenario")
+TIME_TO_TRAIN_UNITS = 400
 MAX_TIME_OF_A_ROUND = 600
 
 # TIME_TO_TRAIN_UNITS = 10
 # MAX_TIME_OF_A_ROUND = 50
 
 WIN_AREA_POSITION_RELATIVE_TO_SPAWN = 15
-POPULATION = 515
-SPAWN_LENGTH = 25
+POPULATION = 200
+SPAWN_LENGTH = 40
 GOLD = 7500
-FOOD = 20000
+FOOD = 10000
 STONE = 0
-WOOD = 20000
+WOOD = 10000
 NUMBER_OF_WARNING = 10
 
 
@@ -51,23 +58,21 @@ team2 = Team("TEAM 2")
 team2.players = [Player(i) for i in range(5, 9)]
 team1.other_team = team2
 team2.other_team = team1
-for player in range(1, 9):
-    metatrigger = NoHouseNeeded(player=player, population=POPULATION)
-    scn.add(metatrigger)
+
 
 for x in list(range(0, int(SPAWN_LENGTH))) + list(range(scn.get_width() - int(SPAWN_LENGTH), scn.get_width())):
     for y in range(0, scn.get_height() - 1):
         scn.map.tiles[y][x].type = EnumTile.LEAVES.value
         scn.map.tiles[y][x].elevation = 1
 
-for team in [team1,team2]:
+for team in [team1, team2]:
     for player in team.players:
         # player.disabledtechs[]
         for ennemy in team.other_team.players:
-            scn.players[player.id].diplomacy.stances[ennemy.id] =3
+            scn.players[player.id].diplomacy.stances[ennemy.id] = 3
 
         for ally in team.players:
-            scn.players[player.id].diplomacy.stances[ally.id] =0
+            scn.players[player.id].diplomacy.stances[ally.id] = 0
 
 relics = []
 for r in range(1, 4):
@@ -81,16 +86,22 @@ for r in range(1, 4):
 
 
 def create_win_area(x, y, sep=4, team=None):
-    for unit_constant in [UnitConstant.FLAG_A.value, UnitConstant.ARMY_TENT_4.value]:
+    for unit_constant in [UnitConstant.FLAG_A.value ]: #UnitConstant.GUARD_TOWER.value
         uns = [scn.units.new(owner=team.players[0].id, x=x, y=y, type=unit_constant),
                scn.units.new(owner=team.players[1].id, x=x + sep, y=y + sep, type=unit_constant),
                scn.units.new(owner=team.players[2].id, x=x, y=y + sep, type=unit_constant),
                scn.units.new(owner=team.players[3].id, x=x + sep, y=y, type=unit_constant)]
-        if unit_constant == UnitConstant.ARMY_TENT_4.value:
+        if unit_constant == UnitConstant.GUARD_TOWER.value:
             for iu, u in enumerate(uns):
-                mt = Trigger("buff unit ({})".format(u.id),enable=True).then_(BuffHP(unit=u,amount=90000,player=team.players[iu].id))
-                # mt = InvicibleUnit(unithp=550, unit=u, player=team.players[iu].id)
+                #mt = Trigger("buff unit ({})".format(u.id), enable=True).then_(BuffHP(unit=u, amount=90000, player=team.players[iu].id))
+                mt = InvicibleUnit(unit_hp=25964, unit=u, player=team.players[iu].id)
                 scn.add(mt)
+
+    for unit_constant in [UnitConstant.MILITIA.value]:
+        uns = [scn.units.new(owner=team.players[0].id, x=x+1, y=y+1, type=unit_constant),
+               scn.units.new(owner=team.players[1].id, x=x + sep-1, y=y + sep-1, type=unit_constant),
+               scn.units.new(owner=team.players[2].id, x=x+1, y=y + sep-1, type=unit_constant),
+               scn.units.new(owner=team.players[3].id, x=x + sep-1, y=y+1, type=unit_constant)]
 
     for tile in scn.map.tiles.getArea(x, y, x + sep - 1, y + sep - 1):
         tile.type = EnumTile.ROCK.value
@@ -161,7 +172,7 @@ buildings = [UnitConstant.CASTLE.value,
 
              ]
 
-SEP_BETWEEN_BUILDING = 4
+SEP_BETWEEN_BUILDING = 5
 OFFSET = int(((len(buildings) - 1) * SEP_BETWEEN_BUILDING) / 2)
 
 create_buildings = Trigger("create buildings")
@@ -175,12 +186,13 @@ for team in [team1, team2]:
         y = int(((player.id % 4) + 1) * (scn.get_height() / 5))
         player.position = (x, y)
         # scn.units.new(owner=player, x=x + (2 if player < 5 else -2), y=y, type=UnitConstant.FLAG_B.value)
-        for i_unit, unit in enumerate(buildings):
-            y_ = y + i_unit * SEP_BETWEEN_BUILDING - OFFSET
-            create_buildings.then_(CreateObject(x=x, y=y_, unit_cons=unit, player=player.id))
-            remove_buildings.then_(RemoveObject(player=player.id, unit_cons=unit, x1=x, x2=x, y1=y_, y2=y_))
-scn.add(create_buildings)
-scn.add(remove_buildings)
+        for _ in range(5):
+            for i_unit, unit in enumerate(buildings):
+                y_ = y + i_unit * SEP_BETWEEN_BUILDING - OFFSET
+                create_buildings.then_(CreateObject(x=x, y=y_, unit_cons=unit, player=player.id))
+                remove_buildings.then_(RemoveObject(player=player.id, unit_cons=unit, x1=x, x2=x, y1=y_, y2=y_))
+            x=x+5
+
 
 remove_haystacks = Trigger("open fighting area")
 remove_haystacks.then_((RemoveObject(player=PlayerEnum.GAIA.value,
@@ -196,18 +208,16 @@ remove_haystacks.then_((RemoveObject(player=PlayerEnum.GAIA.value,
                                      y1=0,
                                      y2=scn.get_height() - 1)))
 remove_haystacks.then_(SendInstruction(text="You may now fight"))
-scn.add(remove_haystacks)
+
 
 create_haystacks = Trigger("create haystacks")
 for x in [SPAWN_LENGTH, scn.get_width() - SPAWN_LENGTH - 1]:
     for y in range(0, scn.get_height()):
         create_haystacks.then_(CreateObject(x=x, y=y, unit_cons=UnitConstant.HAY_STACK.value, player=0))
-scn.add(create_haystacks)
 
 kill_all_military = Trigger("kill all military")
 for p in range(1, 9):
     kill_all_military.then_(RemoveObjectByType(player=p, x1=-1, x2=-1, y2=-1, y1=-1, type=UnitType.MILITARY.value))
-scn.add(kill_all_military)
 
 set_resource = Trigger("Resources")
 for p in range(1, 9):
@@ -227,8 +237,7 @@ for p in range(1, 9):
     reset_resource.then_(PayStone(player=p, amount=10000 if STONE == 0 else STONE))
     reset_resource.then_(PayWood(player=p, amount=WOOD))
 
-scn.add(set_resource)
-scn.add(reset_resource)
+
 
 new_round = Trigger("new_round", enable=True)
 
@@ -275,9 +284,8 @@ for team in [team1, team2]:
     compute_win_no_military = Trigger("compute_win_no_military ({})".format(team.name))
     compute_instant_win = Trigger("compute_instant_win ({})".format(team.name))
 
-
     # win is less than 5 militry for each player TODO factorise wining conditions
-    compute_win_no_military.if_(Timer(int(MAX_TIME_OF_A_ROUND/10))) # REMIOVE THIS, BUT THIS WILL BUG AND AUTOWIN ??
+    compute_win_no_military.if_(Timer(int(MAX_TIME_OF_A_ROUND / 10)))  # REMIOVE THIS, BUT THIS WILL BUG AND AUTOWIN ??
     for p in team.other_team.players:
         compute_win_no_military.if_(
             Not(ObjectInArea(amount=5, sourcePlayer=p.id, unit_type=UnitType.MILITARY.value, x1=-1, x2=-1, y1=-1,
@@ -285,11 +293,11 @@ for team in [team1, team2]:
     for p in team.players:
         compute_win_no_military.if_(
             (ObjectInArea(amount=5, sourcePlayer=p.id, unit_type=UnitType.MILITARY.value, x1=-1, x2=-1, y1=-1,
-                             y2=-1)))
+                          y2=-1)))
     compute_win_no_military.then_(ActivateTrigger(remove_flag))
-    for p in range(1,9):
+    for p in range(1, 9):
         compute_win_no_military.then_(
-            SendChat(player=p,text="<<<<<<<<< {} wins this round >>>>>>>>>>".format(team.name), color=Color.RED))
+            SendChat(player=p, text="<<<<<<<<< {} wins this round >>>>>>>>>>".format(team.name), color=Color.RED))
     compute_win_no_military.then_(DesactivateTrigger(compute_win))
     for t in countdowns_triggers:
         compute_win_no_military.then_(DesactivateTrigger(t))
@@ -347,8 +355,28 @@ for team in [team1, team2]:
     scn.add(compute_win_no_military)
     scn.add(show_countdown)
 
+for player in range(1, 9):
+    if POPULATION > 500:
+        metatrigger = NoHouseNeeded(player=player, population=POPULATION)
+        scn.add(metatrigger)
+    #else:
+    #    scn.players[i].population = float(POPULATION)
+
+
+
 scn.add(new_round)
 scn.add(open_area)
+scn.add(set_resource)
+scn.add(reset_resource)
+scn.add(kill_all_military)
+scn.add(create_haystacks)
+scn.add(remove_haystacks)
+scn.add(create_buildings)
+scn.add(remove_buildings)
+
+for player in scn.players:
+    player.age=6
+
 scn.save(C.game_path_scenario, "age-of-total-war")
 
 # TODO make tent invincible

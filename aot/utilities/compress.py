@@ -75,18 +75,15 @@ class Compress:
         putStr32 = encoder.put_str32
 
         putAscii(str(self.scenario.version))
-        # if self.examples.is_aoe2scenario:
         len_header = 0
-        # else:
-        #     len_header = 20 + len(self.examples.instructions)
         putInt32(len_header)  # header length
-        putInt32(self.scenario.header_type)  # unknown constant
+        putInt32(self.scenario.header_type)
+
         putInt32(self.scenario.timestamp)
         putStr32(self.scenario.instructions)
-        putUInt32(0)  # unknown constant
+        putUInt32(self.scenario.unk_constant1)  # unknown constant
         putUInt32(self.scenario.n_players)
-        # if self.examples.is_aoe2scenario:
-        putUInt32(self.scenario.hd_constant)
+        putUInt32(self.scenario.unk_constant2)
         putUInt32(self.scenario.use_expansion)
         putUInt32(len(self.scenario.datasets))
         for dataset in self.scenario.datasets:
@@ -419,11 +416,11 @@ class Compress:
             put_u16(players[i].unk2)  # todo default
             if players[i].unk1 == 2.0:
                 put_bytes(players[i].unk3)  # todo default
-            put_bytes(players[i].unk4)  # todo default
+            if players[i].unk2 >0:
+                put_bytes(players[i].unk4)  # todo default
             put_bytes(players[i].unk5)  # todo default
             put_bytes(players[i].unk6)  # todo default
 
-        put_bytes(scenario.data3_unk)  # todo default
 
         logger.debug("-------------------------------------------------------")
         logger.debug("-------------------------------------------------------")
@@ -433,10 +430,10 @@ class Compress:
         logger.debug("-------------------------------------------------------")
         logger.debug("-------------------------------------------------------")
 
-        put_s8(scenario.unk_unit_section)
 
-        for i in range(1, 9):
+        for i in range(0, 9):
             number_of_units = len(players[i].units)
+            print(number_of_units)
             put_u32(number_of_units)
             for unit in players[i].units:
                 put_float(unit.x)
@@ -500,8 +497,8 @@ class Compress:
                 put_s32(len(effect.unitIds))  # selected count
                 put_s32(effect.unitId)
                 put_s32(effect.unitName)
-                put_s32(effect.sourcePlayer)
-                put_s32(effect.targetPlayer)
+                put_s32(effect.source_player)
+                put_s32(effect.target_player)
                 put_s32(effect.tech)
                 put_s32(effect.stringId)
                 put_s32(effect.unknown1)
@@ -559,8 +556,12 @@ class Compress:
 
         put_bytes(scenario.extra_bytes_at_the_end)
 
+        put_u8(scenario.has_embedded_ai_file)
 
-        if self.scenario.number_of_ai_files is not None:
+        put_bytes(scenario.unk_before_embedded)
+
+        if scenario.has_embedded_ai_file:
+
             put_u32(self.scenario.number_of_ai_files)
             for per,file in scenario.ai_files:
                 put_str32(per,remove_last=True)

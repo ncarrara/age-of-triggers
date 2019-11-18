@@ -19,14 +19,14 @@ basename = "fresh"
 logging.basicConfig(level=logging.DEBUG)
 
 scn = Scenario(header_type=constants.HT_AOE2_DE, size=Size.GIANT)
-scn.load("../scenarios", basename)
+scn.load(C.game_path_scenario, basename)
 scn.save("../tmp", basename)
 
 scn_to_check = Scenario(header_type=constants.HT_AOE2_DE, size=Size.GIANT)
 scn_to_check.load("../tmp", basename, path_decompressed_data="../tmp/copy.decompressed")
 
 true_scn = Scenario(header_type=constants.HT_AOE2_DE, size=Size.GIANT)
-true_scn.load("../scenarios", basename, path_decompressed_data="../tmp/true.decompressed")
+true_scn.load(C.game_path_scenario, basename, path_decompressed_data="../tmp/true.decompressed")
 
 logger.debug("---------------------------------------")
 logger.debug("---------------------------------------")
