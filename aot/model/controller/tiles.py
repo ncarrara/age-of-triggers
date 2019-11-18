@@ -1,5 +1,6 @@
-from aot.model import *
 from itertools import chain
+
+from aot.model.tile import Tile
 
 
 class Tiles:

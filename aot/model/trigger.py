@@ -1,22 +1,7 @@
-from .effect import *
-from .condition import *
+from aot.model.message import Message
 
 
 class Trigger:
-    """Scenario trigger
-
-    Args:
-        name (str): name of trigger (displayed in game editor)
-        enable (bool): is trigger enabled ?
-        loop (bool): looping trigger ?
-        objective (bool): display objective, when enabled is fired?
-        objectiveOrder (int): display objective on row
-        text (str): objective text to display
-        unknown1 (int): unknown1
-        unknown2 (int): unknown2
-        effects (list(Effect)): effects stored in trigger
-        conditions (list(Condition)): conditions stored in trigger
-    """
 
     @property
     def effects(self):
@@ -26,30 +11,30 @@ class Trigger:
     def conditions(self):
         return self.__conditions
 
-    def __init__(self,  name="", enable=False, loop=False,
-                 objective=False, objectiveOrd=0, text="",
-                 unknown1=0, unknown2=0,id=-1):
+    def __init__(self, name="", enable=False, loop=False, make_header=0,
+                 objective=False, description_order=0, id=-1,display_as_objective=0,mute_objectives=0):
         """Initialize examples trigger"""
-        self.id=id
+        self.make_header = make_header
+        self.id = id
         self.name = name  # name of trigger
         self.enable = enable  # ? enabled from start
         self.loop = loop  # ? loop trigger
         self.objective = objective  # ? objective
-        self.objectiveOrder = objectiveOrd  # line number in objectives menu
-        self.text = text
-
-        self.unknown1 = unknown1
-        self.unknown2 = unknown2
-
+        self.display_as_objective = display_as_objective
+        self.mute_objectives = mute_objectives
+        self.description_order = description_order  # line number in objectives menu
+        self.short_description = {"text": "", "display_on_screen": 0, "string_table_id": 0}
+        self.trigger_description = {"text": "", "display_as_objective": 0, "string_table_id": 0}
         self.__effects = list()
         self.__conditions = list()
+        self.unknowns = [0] * 11
 
     def __repr__(self):
         name = "TRIGGER: \n"
         info1 = "\tNAME: {}\n\tENABLED: {}\n".format(self.name, self.enable)
         info2 = "\tLOOP: {}\n\tOBJECTIVES: {}\n".format(
             self.loop, self.objective)
-        info3 = "\tOBJECTIVES ORDER: {}\n".format(self.objectiveOrder)
+        info3 = "\tOBJECTIVES ORDER: {}\n".format(self.description_order)
         info4 = "\tTEXT: {}".format(self.text)
         return name + info1 + info2 + info3 + info4
 
@@ -60,7 +45,7 @@ class Trigger:
         data["enable"] = self.enable
         data["loop"] = self.loop
         data["objective"] = self.objective
-        data["objectiveOrder"] = self.objectiveOrder
+        data["objectiveOrder"] = self.description_order
         data["text"] = self.text
         data["effects"] = list()
         for effect in self.__effects:
@@ -70,29 +55,10 @@ class Trigger:
             data["conditions"].append(condition.toJSON())
         return data
 
-    def then_(self,effect):
+    def then_(self, effect):
         self.__effects.append(effect)
         return self
 
-    def if_(self,conditions):
-        self.__conditions.append(conditions)
+    def if_(self, condition):
+        self.__conditions.append(condition)
         return self
-
-
-    def newEffect(self, **config):
-        """
-        Create new effect for this trigger
-
-        Note:
-            check effect params
-        """
-        self.__effects.append(Effect( **config))
-
-    def newCondition(self, **config):
-        """
-        Create new condition for this trigger
-
-        Note:
-            check effect params
-        """
-        self.__conditions.append(Condition(**config))

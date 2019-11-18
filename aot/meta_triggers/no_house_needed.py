@@ -1,5 +1,6 @@
-from aot import MetaTrigger, GiveExtraPop, GiveHeadroom
-from aot import Trigger, SendChat
+from aot.meta_triggers.metatrigger import MetaTrigger
+from aot.model.effect import GiveExtraPop, GiveHeadroom, SendChat
+from aot.model.trigger import Trigger
 
 
 class NoHouseNeeded(MetaTrigger):

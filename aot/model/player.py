@@ -93,13 +93,15 @@ class Player:
             unknown3 (int, optional): unknown, 0
             unknown4 (int, optional): unknown, 0
         """
-        if index==2:
-            self.per_names="Promisory"
-            with open(Configuration.C.per_path,"rb") as f:
-                self.per = f.read()
-        else:
-            self.per_names = per_names
-            self.per = per
+        #if index==2: # TODO when from scratch
+        #    self.per_names="Promisory"
+        #    with open(Configuration.C.per_path,"rb") as f:
+        #        self.per = f.read()
+        #else:
+        self.per_names = per_names
+        self.per = per
+
+
         if index==1:
             self.human=1
         else:

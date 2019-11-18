@@ -11,7 +11,7 @@ class Decoder:
         self.__pntr = 0
         self.__data = binaries
 
-    def getStr32(self,remove_last=True):
+    def get_str32(self, remove_last=True):
         self.__pntr += 4
         temp = struct.unpack('i', self.__data[self.__pntr - 4:self.__pntr])[0]
         self.__pntr += temp
@@ -20,7 +20,7 @@ class Decoder:
             full_str = full_str[:-1]
         return full_str
 
-    def getStr16(self,remove_last=True):
+    def get_str16(self, remove_last=True):
         self.__pntr += 2
         temp = struct.unpack('h', self.__data[self.__pntr - 2:self.__pntr])[0]
         self.__pntr += temp
@@ -40,10 +40,10 @@ class Decoder:
 
         return v
 
-    def getLong(self):
+    def get_long(self):
 
-        self.__pntr += 4
-        v = struct.unpack('l', self.__data[self.__pntr - 4:self.__pntr])[0]
+        self.__pntr += 8
+        v = struct.unpack('l', self.__data[self.__pntr - 8:self.__pntr])[0]
 
         return v
 
@@ -62,14 +62,18 @@ class Decoder:
         self.__pntr += 2
         return struct.unpack('H', self.__data[self.__pntr - 2:self.__pntr])[0]
 
-    def getFloat(self):
+    def get_float(self):
         self.__pntr += 4
         v = struct.unpack('f', self.__data[self.__pntr - 4:self.__pntr])[0]
         return v
 
-    def getInt8(self):
+    def get_s8(self):
         self.__pntr += 1
-        return ord(self.__data[self.__pntr - 1:self.__pntr])
+        return struct.unpack('b', self.__data[self.__pntr - 1:self.__pntr])[0]
+
+    def get_u8(self):
+        self.__pntr += 1
+        return struct.unpack('B', self.__data[self.__pntr - 1:self.__pntr])[0]
 
     def getAscii(self, length):
         self.__pntr += length
@@ -77,7 +81,11 @@ class Decoder:
 
         return vvv
 
-    def getBytes(self, length):
+    def get_bytes(self, length):
+        if length==0:
+            raise Exception("cannot read 0 bytes")
+        if self.__pntr+length > len(self.__data):
+            raise Exception("Cannot access extra bytes, data has len {} and you want to access {}. Maximum number of Bytes requestable: {}".format(len(self.__data),self.__pntr+length,len(self.__data)-self.__pntr))
         self.__pntr += length
         return self.__data[self.__pntr - length:self.__pntr]
 
@@ -95,6 +103,9 @@ class Decoder:
             datatype, self.__data[self.__pntr:self.__pntr + size])
         self.__pntr += size
         return ret
+
+    def bytes_remaining(self):
+        return len(self.__data) - self.__pntr
 
     def offset(self):
         """Get decode position
@@ -178,10 +189,11 @@ class Decoder:
         return sep
 
     def skip_separator(self):
-        sep = self.__data[self.__pntr:self.__pntr + 4]
-        self.skip(4)
+        #sep = self.__data[self.__pntr:self.__pntr + 4]
+        sep = self.get_bytes(4)
+        #self.skip(4)
         if sep.hex() != "9dffffff":
-            raise Exception("decoding error, missing 9dffffff sperator, found {} instead".format(sep))
+            raise Exception("decoding error, missing 9dffffff sperator, found {} instead".format(sep.hex()))
         return sep
 
     def skip(self, size):

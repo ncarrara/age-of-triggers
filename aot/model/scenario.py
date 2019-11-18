@@ -1,11 +1,23 @@
-# utilities
 from aot.meta_triggers.metatrigger import MetaTrigger
-from aot.model.controller import *
+from aot.model.controller.background import Background
+from aot.model.controller.cinematics import Cinematics
+from aot.model.controller.goals import Goals
+from aot.model.controller.map import Map
+from aot.model.controller.messages import Messages
+from aot.model.controller.players import Players
+from aot.model.controller.triggers import Triggers
+from aot.model.debug import Debug
 from aot.model.enums.constants import HT_AOE2_DE
 from aot.model.enums.sizes import Size
 from aot.model.enums.unit import UnitConstant
-from aot.utilities.decompress import *
-from aot.utilities.compress import *
+from aot.model.trigger import Trigger
+from aot.model.units import Units
+from aot.utilities.compress import Compress
+from aot.utilities.decompress import Decompress
+
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class Scenario:
@@ -17,10 +29,31 @@ class Scenario:
     def get_width(self):
         return self.map.width
 
-    def __init__(self, header_type=HT_AOE2_DE, size=Size.GIANT):
+    def __init__(self, size=Size.GIANT):
 
         self._clear(size=size)
-        self.header_type = header_type
+
+        # have to load template because all variables are not set # # TODO when from scratch
+
+    def load_template(self, size=Size.GIANT):
+        self._clear(size=size)
+        if size is not None:
+            if size is Size.GIANT:
+                self.load("templates", "template_giant")
+            elif size is Size.NORMAL:
+                self.load("templates", "template_normal")
+            elif size is Size.MEDIUM:
+                self.load("templates", "template_medium")
+            elif size is Size.LARGE:
+                self.load("templates", "template_large")
+            elif size is Size.TINY:
+                self.load("templates", "template_tiny")
+            elif size is Size.SMALL:
+                self.load("templates", "template_small")
+            elif size is Size.LUDAKRIS:
+                self.load("templates", "template_ludicrous")
+            else:
+                raise Exception("missing template for size {}".format(size))
 
     def add(self, trigger):
         if issubclass(trigger.__class__, Trigger):
@@ -37,7 +70,7 @@ class Scenario:
         info3 = "\tTRIGGERS:{}".format(len(self.triggers))
         return name + info1 + info2 + info3
 
-    def load(self, path, basename):
+    def load(self, path, basename, path_header=None, path_decompressed_data=None):
         """
             load examples from file
             it doesn't save current examples
@@ -58,10 +91,9 @@ class Scenario:
         except:
             raise (IOError("File is broken or doesn't exists"))
         b = f.read()  # get bytes from file
-        d = Decompress(self, b, False)  # load data
-        self.variables = d.variables
+        d = Decompress(self, b, path_header, path_decompressed_data)  # load data
 
-    def save(self, path, basename):
+    def save(self, path, basename, change_timestamp=True):
         """
             save examples as scx format
 
@@ -72,8 +104,11 @@ class Scenario:
             Todo:
                 finish this section
         """
-        from datetime import datetime
-        self.timestamp = int(datetime.timestamp(datetime.now()))
+        if change_timestamp:
+            from datetime import datetime
+            self.timestamp = int(datetime.timestamp(datetime.now()))
+        else:
+            logging.warning("The timestamp has been kept as it was")
         self.filename = basename + ".aoe2scenario"
         path = path + "/" + self.filename
         logger.debug("saving  examples at {}".format(path))
@@ -85,6 +120,7 @@ class Scenario:
         self.filename = None  # examples filename
         # self.version = None  # examples version
 
+        self.number_of_ai_files = None
         self.instructions = ""
         self.n_players = 8
         self.hd_constant = 1000
@@ -102,6 +138,7 @@ class Scenario:
         self.units = Units()
         self.triggers = Triggers()
         self.units = Units()
+        self.debug = Debug()
 
         for i in range(len(self.players)):
             self.players[i].units = self.units[i]

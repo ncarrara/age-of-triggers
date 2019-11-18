@@ -8,3 +8,19 @@ aot/meta_triggers/__pycache__/
 aot/model/__pycache__/
 
 aot/utilities/__pycache__/
+
+test/__pycache__/
+
+aot/model/enums/__pycache__/
+
+aot/model/controller/__pycache__/
+
+test/test_api/__pycache__/
+
+test/dirty_tests/c1.temp
+
+test/tmp/
+
+test/dirty_tests/fresh\.temp
+
+*.temp

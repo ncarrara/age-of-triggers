@@ -1,9 +1,13 @@
 import numpy as np
+
+from aot.model.enums.constants import HT_AOE2_DE
 from aot.utilities import *
 from aot.model import *
 import zlib
 import os
 import logging
+
+from aot.utilities.encoder import Encoder
 
 logger = logging.getLogger(__name__)
 
@@ -47,374 +51,521 @@ class Compress:
         self.scenario = scenario
         # self.version = version
 
-        f1 = open('c1.temp', 'wb')
-        f2 = open('c2.temp', 'wb')
+        temp0 = "{}_0.temp".format(scenario.filename)
+        temp1 = "{}_1.temp".format(scenario.filename)
+
+        f1 = open(temp0, 'wb')
+        f2 = open(temp1, 'wb')
         self.compressHeader(f1)
         self.compressData(f2)
         f1.close()
         f2.close()
-        data = open('c1.temp', 'rb').read()
-        d = deflate(open('c2.temp', 'rb').read())
+        data = open(temp0, 'rb').read()
+        d = deflate(open(temp1, 'rb').read())
         open(path, 'wb').write(data + d)
-        os.remove("c1.temp")
-        os.remove("c2.temp")
+        os.remove(temp0)
+        os.remove(temp1)
 
     def compressHeader(self, f):
         encoder = Encoder(f)
 
-        putAscii = encoder.putAscii
-        putUInt32 = encoder.putUInt32
-        putInt32 = encoder.putInt32
-        putStr32 = encoder.putStr32
+        putAscii = encoder.put_ascii
+        putUInt32 = encoder.put_u32
+        putInt32 = encoder.put_s32
+        putStr32 = encoder.put_str32
 
         putAscii(str(self.scenario.version))
-        # if self.examples.is_aoe2scenario:
         len_header = 0
-        # else:
-        #     len_header = 20 + len(self.examples.instructions)
         putInt32(len_header)  # header length
-        putInt32(self.scenario.header_type)  # unknown constant
+        putInt32(self.scenario.header_type)
+
         putInt32(self.scenario.timestamp)
         putStr32(self.scenario.instructions)
-        putUInt32(0)  # unknown constant
+        putUInt32(self.scenario.unk_constant1)  # unknown constant
         putUInt32(self.scenario.n_players)
-        # if self.examples.is_aoe2scenario:
-        putUInt32(self.scenario.hd_constant)
+        putUInt32(self.scenario.unk_constant2)
         putUInt32(self.scenario.use_expansion)
         putUInt32(len(self.scenario.datasets))
         for dataset in self.scenario.datasets:
             putInt32(dataset)
 
+        putStr32(self.scenario.author)  # todo default
+        putInt32(self.scenario.header_unknown)  # todo default
+
     def compressData(self, f):
         encoder = Encoder(f)
-        version = self.scenario.version
-
         scenario = self.scenario
         players = self.scenario.players
         messages = self.scenario.messages
         triggers = self.scenario.triggers
         debug = self.scenario.debug
 
-        putAscii = encoder.putAscii
-        putUInt32 = encoder.putUInt32
-        putInt8 = encoder.putInt8
-        putInt16 = encoder.putInt16
-        putUInt16 = encoder.putUInt16
-        putInt32 = encoder.putInt32
-        putStr16 = encoder.putStr16
-        putStr32 = encoder.putStr32
-        putFloat = encoder.putFloat
-        putBytes = encoder.putBytes
+        put_u32 = encoder.put_u32
+        put_s8 = encoder.put_s8
+        put_u8 = encoder.put_u8
+        put_s16 = encoder.put_s16
+        put_u16 = encoder.put_u16
+        put_s32 = encoder.put_s32
+        put_str16 = encoder.put_str16
+        put_str32 = encoder.put_str32
+        put_float = encoder.put_float
+        put_bytes = encoder.put_bytes
 
-        #########################
-        ### COMPRESSED HEADER ###
-        #########################
+        logger.debug("-------------------------------------------------------")
+        logger.debug("-------------------------------------------------------")
+        logger.debug("-------------------------------------------------------")
+        logger.debug("---------------------- COMPRESSED HEADER --------------")
+        logger.debug("-------------------------------------------------------")
+        logger.debug("-------------------------------------------------------")
+        logger.debug("-------------------------------------------------------")
 
-        putUInt32(scenario.units.getNextID())
-        putFloat(scenario.version2)
-
-        for i in range(1, 17):
-            putAscii(players[i].name, 256)
-
-        for i in range(1, 17):
-            putInt32(players[i].nameID)
+        put_u32(scenario.units.getNextID())
+        put_float(scenario.version2)
 
         for i in range(1, 17):
-            putUInt32(players[i].active, "player.active")
-            putUInt32(players[i].human)
-            putUInt32(players[i].civilization)
-            putUInt32(players[i].unknown1)
+            put_bytes(players[i].name)
 
-        putInt32(scenario.unknown1_compressed_header)  # unknown <!>
-        putInt32(scenario.unknown2_compressed_header)  # unknown <!>
-        putBytes(scenario.separator_at_compressed_header)  # separator
-        putStr16(scenario.filename, remove_last=False)
+        for i in range(1, 17):
+            put_s32(players[i].nameID)
 
-        #########################
-        ### MESSAGES ###
-        #########################
+        for i in range(1, 17):
+            if i == 9:
+                i = 0  # GAIA is 9th
+            if i > 9:
+                i -= 1
+            put_u32(players[i].active, "player.active")
+            put_u32(players[i].human)
+            put_u32(players[i].civilization)
+            put_u32(players[i].unknown1)
 
-        putInt32(messages.objectives.id)
-        putInt32(messages.hints.id)
-        putInt32(messages.victory.id)
-        putInt32(messages.loss.id)
-        putInt32(messages.history.id)
-        putInt32(messages.scouts.id)
-        putStr16(messages.objectives.text, remove_last=False)
-        putStr16(messages.hints.text, remove_last=False)
-        putStr16(messages.victory.text, remove_last=False)
-        putStr16(messages.loss.text, remove_last=False)
-        putStr16(messages.history.text, remove_last=False)
-        putStr16(messages.scouts.text, remove_last=False)
+        put_bytes(self.scenario.unknown_bytes_after_civs)  # todo default
 
-        # section: CINEMATICS
-        putStr16(scenario.cinematics.intro, remove_last=False)
-        putStr16(scenario.cinematics.defeat, remove_last=False)
-        putStr16(scenario.cinematics.victory, remove_last=False)
+        put_str16(scenario.original_filename, remove_last=False) # todo default
 
-        # section: BACKGROUND
-        putStr16(scenario.background.filename, remove_last=False)
-        putInt32(scenario.background.included)
-        putInt32(scenario.background.width)
-        putInt32(scenario.background.height)
-        putInt16(scenario.background.include)
+        logger.debug("-------------------------------------------------------")
+        logger.debug("-------------------------------------------------------")
+        logger.debug("-------------------------------------------------------")
+        logger.debug("---------------------- MESSAGES ----------------------")
+        logger.debug("-------------------------------------------------------")
+        logger.debug("-------------------------------------------------------")
+        logger.debug("-------------------------------------------------------")
+
+        put_s32(messages.objectives.id)
+        put_s32(messages.hints.id)
+        put_s32(messages.victory.id)
+        put_s32(messages.loss.id)
+        put_s32(messages.history.id)
+        put_s32(messages.scouts.id)
+
+        put_str16(messages.objectives.text, remove_last=False)
+        put_str16(messages.hints.text, remove_last=False)
+        put_str16(messages.victory.text, remove_last=False)
+        put_str16(messages.loss.text, remove_last=False)
+        put_str16(messages.history.text, remove_last=False)
+        put_str16(messages.scouts.text, remove_last=False)
+
+        logger.debug("-------------------------------------------------------")
+        logger.debug("-------------------------------------------------------")
+        logger.debug("-------------------------------------------------------")
+        logger.debug("---------------------- CINEMATICS ----------------------")
+        logger.debug("-------------------------------------------------------")
+        logger.debug("-------------------------------------------------------")
+        logger.debug("-------------------------------------------------------")
+
+        put_str16(scenario.cinematics.intro, remove_last=False)
+        put_str16(scenario.cinematics.victory, remove_last=False)
+        put_str16(scenario.cinematics.defeat, remove_last=False)
+
+        logger.debug("-------------------------------------------------------")
+        logger.debug("-------------------------------------------------------")
+        logger.debug("-------------------------------------------------------")
+        logger.debug("---------------------- BACKGROUND ----------------------")
+        logger.debug("-------------------------------------------------------")
+        logger.debug("-------------------------------------------------------")
+        logger.debug("-------------------------------------------------------")
+
+        put_str16(scenario.background.filename, remove_last=False)
+        put_u32(scenario.background.included)
+        put_u32(scenario.background.width)
+        put_u32(scenario.background.height)
+        put_s16(scenario.background.include)
 
         if (scenario.background.include == - 1 or scenario.background.include == 2):
-            putUInt32(scenario.size)
-            putInt32(scenario.width)
-            putInt32(scenario.height)
-            putInt16(scenario.planes)
-            putInt16(scenario.bitCount)
-            putInt32(scenario.compression)
-            putInt32(scenario.sizeImage)
-            putInt32(scenario.xPels)
-            putInt32(scenario.yPels)
-            putUInt32(scenario.colors)
-            putInt32(scenario.iColors)
-            putBytes(scenario.colorTable)
-            putBytes(scenario.rawData)
+            put_u32(scenario.size)
+            put_s32(scenario.width)
+            put_s32(scenario.height)
+            put_s16(scenario.planes)
+            put_s16(scenario.bitCount)
+            put_s32(scenario.compression)
+            put_s32(scenario.sizeImage)
+            put_s32(scenario.xPels)
+            put_s32(scenario.yPels)
+            put_u32(scenario.colors)
+            put_s32(scenario.iColors)
+            put_bytes(scenario.colorTable)
+            put_bytes(scenario.rawData)
 
-        # section: PLAYER DATA 2
-        for i in range(1, 17):
-            putStr16(players[i].vc_names, remove_last=False)
-
-        for i in range(1, 17):
-            putStr16(players[i].cty_names, remove_last=False)
-
-        for i in range(1, 17):
-            putStr16(players[i].per_names, remove_last=False)
+        logger.debug("-------------------------------------------------------")
+        logger.debug("-------------------------------------------------------")
+        logger.debug("-------------------------------------------------------")
+        logger.debug("---------------------- PLAYER DATA 2-------------------")
+        logger.debug("-------------------------------------------------------")
+        logger.debug("-------------------------------------------------------")
+        logger.debug("-------------------------------------------------------")
 
         for i in range(1, 17):
-            putInt32(len(players[i].vc))
-            putInt32(len(players[i].cty))
-            putInt32(len(players[i].per))
-            putBytes(players[i].vc)
-            putBytes(players[i].cty)
-            putBytes(players[i].per)
+            put_u32(players[i].unknown_constant)  # todo default
 
         for i in range(1, 17):
-            putInt8(players[i].ai.type)
+            if i == 9:
+                i = 0  # GAIA is 9th
+            if i > 9:
+                i -= 1
+            put_str16(players[i].vc_names, remove_last=False)
 
-        putUInt32(4294967197)  # Separator 0xFFFFFF9D
         for i in range(1, 17):
-            putUInt32(int(players[i]._unused_resource.gold))
-            putUInt32(int(players[i]._unused_resource.wood))
-            putUInt32(int(players[i]._unused_resource.food))
-            putUInt32(int(players[i]._unused_resource.stone))
-            putUInt32(int(players[i]._unused_resource.ore))
-            putUInt32(int(players[i]._unused_resource.padding))
-            putUInt32(int(players[i]._unused_resource.index))
+            if i == 9:
+                i = 0  # GAIA is 9th
+            if i > 9:
+                i -= 1
+            put_bytes(players[i].unknown8bytes)  # todo default
+            put_str32(players[i].cty_names, remove_last=False)
 
-        putUInt32(4294967197)  # Separator, again 0xFFFFFF9D
+        put_bytes(self.scenario.unk_after_civs)  # todo default
+
+        logger.debug("-------------------------------------------------------")
+        logger.debug("-------------------------------------------------------")
+        logger.debug("-------------------------------------------------------")
+        logger.debug("---------------------- UNUSED RESOURCES -------------------")
+        logger.debug("-------------------------------------------------------")
+        logger.debug("-------------------------------------------------------")
+        logger.debug("-------------------------------------------------------")
+
+        for i in range(1, 17):
+            if i == 9:
+                i = 0  # GAIA is 9th
+            if i > 9:
+                i -= 1
+            put_s32(int(players[i]._unused_resource.gold))
+            put_s32(int(players[i]._unused_resource.wood))
+            put_s32(int(players[i]._unused_resource.food))
+            put_s32(int(players[i]._unused_resource.stone))
+            put_s32(int(players[i]._unused_resource.ore))
+            put_s32(int(players[i]._unused_resource.padding))
+            put_s32(int(players[i]._unused_resource.index))
+
+        put_u32(4294967197)  # Separator, again 0xFFFFFF9D
 
         # section: Goals
-        putInt32(scenario.goals.conquest)
-        putInt32(scenario.goals.unknown1)
-        putInt32(scenario.goals.relics)
-        putInt32(scenario.goals.unknown2)
-        putInt32(scenario.goals.exploration)
-        putInt32(scenario.goals.unknown3)
-        putInt32(scenario.goals.all)
-        putInt32(scenario.goals.mode)
-        putInt32(scenario.goals.score)
-        putInt32(scenario.goals.time)
+        put_s32(scenario.goals.conquest)
+        put_s32(scenario.goals.unknown1)
+        put_s32(scenario.goals.relics)
+        put_s32(scenario.goals.unknown2)
+        put_s32(scenario.goals.exploration)
+        put_s32(scenario.goals.unknown3)
+        put_s32(scenario.goals.all)
+        put_s32(scenario.goals.mode)
+        put_s32(scenario.goals.score)
+        put_s32(scenario.goals.time)
+
+        logger.debug("-------------------------------------------------------")
+        logger.debug("-------------------------------------------------------")
+        logger.debug("-------------------------------------------------------")
+        logger.debug("---------------------- DIPLOMACY ----------------------")
+        logger.debug("-------------------------------------------------------")
+        logger.debug("-------------------------------------------------------")
+        logger.debug("-------------------------------------------------------")
 
         # section: Diplomacy
         for i in range(1, 17):
             for j in range(1, 17):
-                # print(players[i].diplomacy[j])
-                putInt32(players[i].diplomacy[j])
+                put_s32(players[i].diplomacy[j])
 
-        putBytes(scenario.big_skip_after_diplo)
-        putUInt32(4294967197)  # separator
+        put_bytes(scenario.big_skip_after_diplo)
+        put_u32(4294967197)  # separator
 
         for i in range(1, 17):  # allied victory
-            putInt32(players[i].ally_vic)
+            put_s32(players[i].ally_vic)
 
-        putInt32(67109120)
+        put_s32(67109120)
 
-        ############
-        # DISABLES #
-        ############
+        logger.debug("-------------------------------------------------------")
+        logger.debug("-------------------------------------------------------")
+        logger.debug("-------------------------------------------------------")
+        logger.debug("---------------------- DISABLES -----------------------")
+        logger.debug("-------------------------------------------------------")
+        logger.debug("-------------------------------------------------------")
+        logger.debug("-------------------------------------------------------")
 
         for i in range(1, 17):  # tech count
-            putInt32(np.sum(np.where(np.asarray(players[i].disabledTechs) > -1)))
+            put_u32(len(players[i].disabledTechs))  # todo default
         for i in range(1, 17):  # techs
             for t in players[i].disabledTechs:
-                putInt32(t)
+                put_u32(t)
 
         for i in range(1, 17):  # unit count
-            putInt32(np.sum(np.where(np.asarray(players[i].disabledUnits) > -1)))
+            put_u32(len(players[i].disabledUnits))  # todo default
         for i in range(1, 17):  # units
             for t in players[i].disabledUnits:
-                putInt32(t)
+                put_u32(t)
 
         for i in range(1, 17):  # building count
-            putInt32(np.sum(np.where(np.asarray(players[i].disabledBuildings) > -1)))
+            put_u32(len(players[i].disabledBuildings))  # todo default
         for i in range(1, 17):  # buildings
             for t in players[i].disabledBuildings:
-                putInt32(t)
+                put_u32(t)
 
-        putUInt32(scenario.unknown1_after_tech)
-        putUInt32(scenario.unknown1_after_tech)
-        putUInt32(scenario.is_all_tech)
-        # AGE
+        put_u32(scenario.unknown1_after_tech)
+        put_u32(scenario.unknown1_after_tech)
+        put_u32(scenario.is_all_tech)
+
+        logger.debug("-------------------------------------------------------")
+        logger.debug("-------------------------------------------------------")
+        logger.debug("-------------------------------------------------------")
+        logger.debug("---------------------- AGE ----------------------------")
+        logger.debug("-------------------------------------------------------")
+        logger.debug("-------------------------------------------------------")
+        logger.debug("-------------------------------------------------------")
 
         for i in range(1, 17):
-            putInt32(players[i].age,"age for P{}".format(i))
+            put_s32(players[i].age, "age for P{}".format(i))
 
-        putUInt32(4294967197)
+        put_u32(4294967197)
 
-        # ======== MAP ========
-        putInt32(scenario.map.camera[0])  # warning: doesn't match
-        putInt32(scenario.map.camera[1])  # warning: doesn't match
-        putUInt32(scenario.map.aiType)
+        logger.debug("-------------------------------------------------------")
+        logger.debug("-------------------------------------------------------")
+        logger.debug("-------------------------------------------------------")
+        logger.debug("---------------------- MAP ----------------------------")
+        logger.debug("-------------------------------------------------------")
+        logger.debug("-------------------------------------------------------")
+        logger.debug("-------------------------------------------------------")
 
-        putBytes(scenario.unknown_bytes_before_w_h)
+        put_s32(scenario.map.camera[0])  # warning: doesn't match
+        put_s32(scenario.map.camera[1])  # warning: doesn't match
 
-        putInt32(scenario.tiles.size()[0])
-        putInt32(scenario.tiles.size()[1])
+        put_u32(scenario.map.aiType)
+
+        put_bytes(scenario.map.unk_before_water_definitions)  # todo default
+
+        put_str16(scenario.map.water_definitions, label="scenario.map.water_definitions",remove_last=False)  # todo default
+
+        put_bytes(scenario.map.unk_before_empty)  # todo default
+
+        put_str16(scenario.map.empty,label="scenario.map.empty", remove_last=False)  # todo default
+
+        put_bytes(scenario.map.unk_before_w_h)  # todo default
+
+        put_s32(scenario.tiles.size()[0])
+        put_s32(scenario.tiles.size()[1])
 
         for i, tile in enumerate(scenario.tiles):
-            putInt8(tile.type)
-            if tile.type > 100:
-                raise Exception("impposible")
-            putInt8(tile.elevation)
-            putInt8(tile.unknown)
+            put_u8(tile.type)
+            put_s8(tile.elevation)
+            put_u8(tile.unknown1)  # todo default
+            put_u8(tile.unknown2)  # todo default
 
-        putUInt32(9)  # number of units section
+            put_u8(tile.unknown3)  # todo default
+            put_u8(tile.layer_type)  # todo default
+            put_u8(tile.is_layering)  # todo default
+
+        put_u32(9)  # number of units section
+
+        logger.debug("-------------------------------------------------------")
+        logger.debug("-------------------------------------------------------")
+        logger.debug("-------------------------------------------------------")
+        logger.debug("-------------- (DEFAULT ?) RESOURCE------------------")
+        logger.debug("-------------------------------------------------------")
+        logger.debug("-------------------------------------------------------")
+        logger.debug("-------------------------------------------------------")
 
         for i in range(1, 9):
-            putFloat(players[i].resource.food)
-            putFloat(players[i].resource.wood)
-            putFloat(players[i].resource.gold)
-            putFloat(players[i].resource.stone)
-            putInt32(players[i].resource.ore)
-            putInt32(players[i].resource.padding)
-            putFloat(players[i].population)
+            put_float(players[i].resource.food)
+            put_float(players[i].resource.wood)
+            put_float(players[i].resource.gold)
+            put_float(players[i].resource.stone)
+            put_float(players[i].resource.ore)
+            put_s32(players[i].resource.padding)
+            put_float(players[i].population)
 
-        # Units section
-        for i in range(9):
-            # warning: maybe not correct value
-            putUInt32(len(players[i].units))
+        put_u32(9)  # number of playable players
+
+        logger.debug("-------------------------------------------------------")
+        logger.debug("-------------------------------------------------------")
+        logger.debug("-------------------------------------------------------")
+        logger.debug("---------------------- Player Data 3 Section ----------")
+        logger.debug("-------------------------------------------------------")
+        logger.debug("-------------------------------------------------------")
+        logger.debug("-------------------------------------------------------")
+
+        for i in range(1, 9):
+            put_str16(players[i].constName)
+            put_float(players[i].camera.x)
+            put_float(players[i].camera.y)
+            put_s16(players[i].camera.unknown1)
+            put_s16(players[i].camera.unknown2)
+            put_s8(players[i].allyVictory)
+
+            put_u16(players[i].dip)  # todo default
+            put_bytes(players[i].unk0)  # todo default
+
+            for j in range(9):
+                put_s32(players[i].diplomacy.gaia[j])
+
+            put_u32(players[i].color)
+            put_float(players[i].unk1)  # todo default
+            put_u16(players[i].unk2)  # todo default
+            if players[i].unk1 == 2.0:
+                put_bytes(players[i].unk3)  # todo default
+            if players[i].unk2 >0:
+                put_bytes(players[i].unk4)  # todo default
+            put_bytes(players[i].unk5)  # todo default
+            put_bytes(players[i].unk6)  # todo default
+
+
+        logger.debug("-------------------------------------------------------")
+        logger.debug("-------------------------------------------------------")
+        logger.debug("-------------------------------------------------------")
+        logger.debug("---------------------- UNITS SECTION (DE) -------------")
+        logger.debug("-------------------------------------------------------")
+        logger.debug("-------------------------------------------------------")
+        logger.debug("-------------------------------------------------------")
+
+
+        for i in range(0, 9):
+            number_of_units = len(players[i].units)
+            print(number_of_units)
+            put_u32(number_of_units)
             for unit in players[i].units:
-                putFloat(unit.x)
-                putFloat(unit.y)
-                putFloat(unit.unknown1)
-                putUInt32(unit.id)
-                putUInt16(unit.type)
-                putInt8(unit.unknown2)
-                putFloat(unit.angle)
-                putUInt16(unit.frame)
-                putInt32(unit.inId)
+                put_float(unit.x)
+                put_float(unit.y)
+                put_float(unit.unknown1)
+                put_u32(unit.id)
+                put_u16(unit.type)
+                put_s8(unit.unknown2)
+                put_float(unit.angle)
+                put_u16(unit.frame)
+                put_s32(unit.inId)
 
-        putUInt32(9)  # number of playable players
-        for i in range(1, 9):
-            putStr16(players[i].constName)
-            putFloat(players[i].camera.x)
-            putFloat(players[i].camera.y)
-            putInt16(players[i].camera.unknown1)
-            putInt16(players[i].camera.unknown2)
-            putInt8(players[i].allyVictory)
-            putUInt16(9)  # players for diplomacy
-            for j in range(1, 9):
-                putInt8(players[i].diplomacy[j-1])
-            putInt8(0)  # gaia player
-            for j in range(9):  # for gaia
-                putInt32(players[i].diplomacy.gaia[j])
-            putUInt32(players[i].color)
-            putFloat(2.0)
-            putUInt16(0)
-            for j in range(8):
-                putInt8(0)
-            for j in range(7):
-                putInt8(0)
-            putInt32(-1)
-        putUInt32(2576980378)
-        putUInt32(1073322393)
-        putInt8(0)
-        putInt32(len(triggers))
+        put_bytes(scenario.ukn_9_bytes_before_triggers)
+
+        logger.debug("-------------------------------------------------------")
+        logger.debug("-------------------------------------------------------")
+        logger.debug("-------------------------------------------------------")
+        logger.debug("---------------------- TRIGGERS  ----------------------")
+        logger.debug("-------------------------------------------------------")
+        logger.debug("-------------------------------------------------------")
+        logger.debug("-------------------------------------------------------")
+
+        put_s32(len(triggers))
 
         for trigger in triggers:
-            putUInt32(trigger.enable)
-            putUInt32(trigger.loop)
-            putInt8(trigger.unknown1)
-            putInt8(trigger.objective)
-            putUInt32(trigger.objectiveOrder)
-            putUInt32(trigger.unknown2)
-            putStr32(trigger.text)
-            putStr32(trigger.name)
-            putInt32(len(trigger.effects))
+            put_u32(trigger.enable)
+            put_s8(trigger.loop)
+            put_s8(trigger.trigger_description["string_table_id"])
+            put_s8(trigger.unknowns[0])
+            put_s8(trigger.unknowns[1])
+            put_s8(trigger.unknowns[2])
+            put_s8(trigger.display_as_objective)
+            put_u32(trigger.description_order)
+            put_s8(trigger.make_header)
+            put_s8(trigger.short_description["string_table_id"])
+            put_s8(trigger.unknowns[3])
+            put_s8(trigger.unknowns[4])
+            put_s8(trigger.unknowns[5])
+            put_s8(trigger.short_description["display_on_screen"])
+            put_s8(trigger.unknowns[6])
+            put_s8(trigger.unknowns[7])
+            put_s8(trigger.unknowns[8])
+            put_s8(trigger.unknowns[9])
+            put_s8(trigger.unknowns[10])
+            put_s8(trigger.mute_objectives)
+            put_str32(trigger.trigger_description["text"])
+            put_str32(trigger.name)
+            put_str32(trigger.short_description["text"])
+
+            put_s32(len(trigger.effects))
             for e in range(len(trigger.effects)):
                 effect = trigger.effects[e]
-                putInt32(effect.type)
+                put_s32(effect.type)
                 if effect.check is None:
                     effect.check = 24
-                putInt32(effect.check)
-                putInt32(effect.aiGoal)
-                putInt32(effect.amount)
-                putInt32(effect.resource)
-                putInt32(effect.state)
-                putInt32(len(effect.unitIds)) # selected count
-                putInt32(effect.unitId)
-                # print(effect.unitName)
-                putInt32(effect.unitName)
-                putInt32(effect.sourcePlayer)
-                putInt32(effect.targetPlayer)
-                putInt32(effect.tech)
-                putInt32(effect.stringId)
-                putInt32(effect.unknown1)
-                putInt32(effect.time)
-                putInt32(-1 if effect.trigger_to_activate is None else effect.trigger_to_activate.id)
-                putInt32(effect.x)
-                putInt32(effect.y)
-                putInt32(effect.x1)
-                putInt32(effect.y1)
-                putInt32(effect.x2)
-                putInt32(effect.y2)
-                putInt32(effect.unitGroup)
-                putInt32(effect.unitType)
-                putInt32(effect.instructionId)
-                putInt32(effect.unknown2)
-                putStr32(effect.text, "effect.text")
-                putStr32(effect.filename, "effect.filename")
+                put_s32(effect.check)
+                put_s32(effect.aiGoal)
+                put_s32(effect.amount)
+                put_s32(effect.resource)
+                put_s32(effect.state)
+                put_s32(len(effect.unitIds))  # selected count
+                put_s32(effect.unitId)
+                put_s32(effect.unitName)
+                put_s32(effect.source_player)
+                put_s32(effect.target_player)
+                put_s32(effect.tech)
+                put_s32(effect.stringId)
+                put_s32(effect.unknown1)
+                put_s32(effect.time)
+                put_s32(-1 if effect.trigger_to_activate is None else effect.trigger_to_activate.id)
+                put_s32(effect.x)
+                put_s32(effect.y)
+                put_s32(effect.x1)
+                put_s32(effect.y1)
+                put_s32(effect.x2)
+                put_s32(effect.y2)
+                put_s32(effect.unitGroup)
+                put_s32(effect.unitType)
+                put_s32(effect.instructionId)
+                put_s32(effect.unknown2)
+                put_str32(effect.text, "effect.text")
+                put_str32(effect.filename, "effect.filename")
                 for id in effect.unitIds:
-                    putInt32(id)
+                    put_s32(id)
             for i in range(len(trigger.effects)):
-                putInt32(i)
-            putInt32(len(trigger.conditions))
+                put_s32(i)
+            put_s32(len(trigger.conditions))
             logger.debug("number of conditions : {}".format(len(trigger.conditions)))
             for c in range(len(trigger.conditions)):
                 logger.debug(c.__repr__())
                 condition = trigger.conditions[c]
-                # print(condition)
-                putUInt32(condition.type)
-                putInt32(condition.check)
-                putInt32(condition.amount)
-                putInt32(condition.resource, "condition.resource")
-                putInt32(condition.unitObject)
-                putInt32(condition.unitId)
-                putInt32(condition.unitName)
-                putInt32(condition.sourcePlayer)
-                putInt32(condition.tech)
-                putInt32(condition.timer)
-                putInt32(condition.unknown1)
-                putInt32(condition.x1)
-                putInt32(condition.y1)
-                putInt32(condition.x2)
-                putInt32(condition.y2)
-                putInt32(condition.unitGroup)
-                putInt32(condition.unitType)
-                putInt32(condition.aiSignal)
-                putInt32(condition.reversed, "condition.reversed")
-                putInt32(condition.unknown2)
+                put_u32(condition.type)
+                put_s32(condition.check)
+                put_s32(condition.amount)
+                put_s32(condition.resource, "condition.resource")
+                put_s32(condition.unitObject)
+                put_s32(condition.unitId)
+                put_s32(condition.unitName)
+                put_s32(condition.sourcePlayer)
+                put_s32(condition.tech)
+                put_s32(condition.timer)
+                put_s32(condition.unknown1)
+                put_s32(condition.x1)
+                put_s32(condition.y1)
+                put_s32(condition.x2)
+                put_s32(condition.y2)
+                put_s32(condition.unitGroup)
+                put_s32(condition.unitType)
+                put_s32(condition.aiSignal)
+                put_s32(condition.reversed, "condition.reversed")
+                put_s32(condition.unknown2)
             for i in range(len(trigger.conditions)):
-                putInt32(i)
+                put_s32(i)
         for i in range(len(triggers)):
-            putInt32(i)
-        putUInt32(0)
-        putUInt32(0)
+            put_s32(i)
+        put_u32(debug.included)
+        put_u32(debug.error)
+        if debug.included:
+            put_bytes(debug.raw)
 
+        put_bytes(scenario.extra_bytes_at_the_end)
+
+        put_u8(scenario.has_embedded_ai_file)
+
+        put_bytes(scenario.unk_before_embedded)
+
+        if scenario.has_embedded_ai_file:
+
+            put_u32(self.scenario.number_of_ai_files)
+            for per,file in scenario.ai_files:
+                put_str32(per,remove_last=True)
+                put_str32(file,remove_last=True)
 
 # = open('')
 if __name__ == "__main__":
