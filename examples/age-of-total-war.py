@@ -18,19 +18,21 @@ scn.load_template(Size.LARGE)
 # scn.load(C.game_path_scenario+"/template.aoe2scenario")
 TIME_TO_TRAIN_UNITS = 400
 MAX_TIME_OF_A_ROUND = 600
+POPULATION = 750
 
 # TIME_TO_TRAIN_UNITS = 10
 # MAX_TIME_OF_A_ROUND = 50
 
 WIN_AREA_POSITION_RELATIVE_TO_SPAWN = 15
-POPULATION = 200
-SPAWN_LENGTH = 40
+#POPULATION = 200
+SPAWN_LENGTH = 50
 GOLD = 7500
 FOOD = 10000
 STONE = 0
 WOOD = 10000
 NUMBER_OF_WARNING = 10
-
+SEP_BETWEEN_BUILDING = 5
+NB_OF_COPY_BUILDINGS = 6
 
 class Team:
     def __init__(self, name):
@@ -172,7 +174,6 @@ buildings = [UnitConstant.CASTLE.value,
 
              ]
 
-SEP_BETWEEN_BUILDING = 5
 OFFSET = int(((len(buildings) - 1) * SEP_BETWEEN_BUILDING) / 2)
 
 create_buildings = Trigger("create buildings")
@@ -186,7 +187,7 @@ for team in [team1, team2]:
         y = int(((player.id % 4) + 1) * (scn.get_height() / 5))
         player.position = (x, y)
         # scn.units.new(owner=player, x=x + (2 if player < 5 else -2), y=y, type=UnitConstant.FLAG_B.value)
-        for _ in range(5):
+        for _ in range(NB_OF_COPY_BUILDINGS):
             for i_unit, unit in enumerate(buildings):
                 y_ = y + i_unit * SEP_BETWEEN_BUILDING - OFFSET
                 create_buildings.then_(CreateObject(x=x, y=y_, unit_cons=unit, player=player.id))
@@ -356,11 +357,8 @@ for team in [team1, team2]:
     scn.add(show_countdown)
 
 for player in range(1, 9):
-    if POPULATION > 500:
-        metatrigger = NoHouseNeeded(player=player, population=POPULATION)
-        scn.add(metatrigger)
-    #else:
-    #    scn.players[i].population = float(POPULATION)
+    metatrigger = NoHouseNeeded(player=player, population=POPULATION)
+    scn.add(metatrigger)
 
 
 
@@ -377,7 +375,7 @@ scn.add(remove_buildings)
 for player in scn.players:
     player.age=6
 
-scn.save(C.game_path_scenario, "age-of-total-war")
+scn.save(C.game_path_scenario, "age-of-total-war 0.01")
 
 # TODO make tent invincible
 # TODO make auto win if no military or less than 5on fighting area
