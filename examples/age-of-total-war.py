@@ -1,3 +1,4 @@
+from aot.meta_triggers.DisplayMessages import DisplayMessages, DisplayMessage
 from aot.meta_triggers.invicible_unit import InvicibleUnit
 from aot.meta_triggers.no_house_needed import NoHouseNeeded
 from aot.model.condition import *
@@ -17,6 +18,7 @@ scn.load_template(Size.LARGE)
 
 # scn.load(C.game_path_scenario+"/template.aoe2scenario")
 TIME_TO_TRAIN_UNITS = 400
+NUMBER_OF_MESSAGES_OPEN_AREA_COUNTDOWN = 20
 MAX_TIME_OF_A_ROUND = 600
 POPULATION = 750
 
@@ -24,7 +26,7 @@ POPULATION = 750
 # MAX_TIME_OF_A_ROUND = 50
 
 WIN_AREA_POSITION_RELATIVE_TO_SPAWN = 15
-#POPULATION = 200
+# POPULATION = 200
 SPAWN_LENGTH = 50
 GOLD = 7500
 FOOD = 10000
@@ -33,6 +35,8 @@ WOOD = 10000
 NUMBER_OF_WARNING = 10
 SEP_BETWEEN_BUILDING = 5
 NB_OF_COPY_BUILDINGS = 6
+TIME_BETWEEN_TUTORIAL_MESSAGES = 7
+
 
 class Team:
     def __init__(self, name):
@@ -61,7 +65,6 @@ team2.players = [Player(i) for i in range(5, 9)]
 team1.other_team = team2
 team2.other_team = team1
 
-
 for x in list(range(0, int(SPAWN_LENGTH))) + list(range(scn.get_width() - int(SPAWN_LENGTH), scn.get_width())):
     for y in range(0, scn.get_height() - 1):
         scn.map.tiles[y][x].type = EnumTile.LEAVES.value
@@ -88,22 +91,22 @@ for r in range(1, 4):
 
 
 def create_win_area(x, y, sep=4, team=None):
-    for unit_constant in [UnitConstant.FLAG_A.value ]: #UnitConstant.GUARD_TOWER.value
+    for unit_constant in [UnitConstant.FLAG_A.value]:  # UnitConstant.GUARD_TOWER.value
         uns = [scn.units.new(owner=team.players[0].id, x=x, y=y, type=unit_constant),
                scn.units.new(owner=team.players[1].id, x=x + sep, y=y + sep, type=unit_constant),
                scn.units.new(owner=team.players[2].id, x=x, y=y + sep, type=unit_constant),
                scn.units.new(owner=team.players[3].id, x=x + sep, y=y, type=unit_constant)]
         if unit_constant == UnitConstant.GUARD_TOWER.value:
             for iu, u in enumerate(uns):
-                #mt = Trigger("buff unit ({})".format(u.id), enable=True).then_(BuffHP(unit=u, amount=90000, player=team.players[iu].id))
+                # mt = Trigger("buff unit ({})".format(u.id), enable=True).then_(BuffHP(unit=u, amount=90000, player=team.players[iu].id))
                 mt = InvicibleUnit(unit_hp=25964, unit=u, player=team.players[iu].id)
                 scn.add(mt)
 
     for unit_constant in [UnitConstant.MILITIA.value]:
-        uns = [scn.units.new(owner=team.players[0].id, x=x+1, y=y+1, type=unit_constant),
-               scn.units.new(owner=team.players[1].id, x=x + sep-1, y=y + sep-1, type=unit_constant),
-               scn.units.new(owner=team.players[2].id, x=x+1, y=y + sep-1, type=unit_constant),
-               scn.units.new(owner=team.players[3].id, x=x + sep-1, y=y+1, type=unit_constant)]
+        uns = [scn.units.new(owner=team.players[0].id, x=x + 1, y=y + 1, type=unit_constant),
+               scn.units.new(owner=team.players[1].id, x=x + sep - 1, y=y + sep - 1, type=unit_constant),
+               scn.units.new(owner=team.players[2].id, x=x + 1, y=y + sep - 1, type=unit_constant),
+               scn.units.new(owner=team.players[3].id, x=x + sep - 1, y=y + 1, type=unit_constant)]
 
     for tile in scn.map.tiles.getArea(x, y, x + sep - 1, y + sep - 1):
         tile.type = EnumTile.ROCK.value
@@ -192,8 +195,7 @@ for team in [team1, team2]:
                 y_ = y + i_unit * SEP_BETWEEN_BUILDING - OFFSET
                 create_buildings.then_(CreateObject(x=x, y=y_, unit_cons=unit, player=player.id))
                 remove_buildings.then_(RemoveObject(player=player.id, unit_cons=unit, x1=x, x2=x, y1=y_, y2=y_))
-            x=x+5
-
+            x = x + 5
 
 remove_haystacks = Trigger("open fighting area")
 remove_haystacks.then_((RemoveObject(player=PlayerEnum.GAIA.value,
@@ -209,7 +211,6 @@ remove_haystacks.then_((RemoveObject(player=PlayerEnum.GAIA.value,
                                      y1=0,
                                      y2=scn.get_height() - 1)))
 remove_haystacks.then_(SendInstruction(text="You may now fight"))
-
 
 create_haystacks = Trigger("create haystacks")
 for x in [SPAWN_LENGTH, scn.get_width() - SPAWN_LENGTH - 1]:
@@ -238,9 +239,7 @@ for p in range(1, 9):
     reset_resource.then_(PayStone(player=p, amount=10000 if STONE == 0 else STONE))
     reset_resource.then_(PayWood(player=p, amount=WOOD))
 
-
-
-new_round = Trigger("new_round", enable=True)
+new_round = Trigger("new_round", enable=False)
 
 for t in relic_reset_triggers:
     new_round.then_(ActivateTrigger(t))
@@ -360,7 +359,52 @@ for player in range(1, 9):
     metatrigger = NoHouseNeeded(player=player, population=POPULATION)
     scn.add(metatrigger)
 
+for team in [team1, team2]:
+    for player in team.players:
+        messages = [
+            DisplayMessage("Welcome to Age of Total War", None, 0),
+            DisplayMessage("To win a round, you need to bring 3 relics cart to this area",
+                           (team.x1_win, team.x2_win),
+                           TIME_BETWEEN_TUTORIAL_MESSAGES),
+            DisplayMessage("You also win a round if you hold 2 relics for {} seconds".format(MAX_TIME_OF_A_ROUND),
+                           (team.x1_win, team.x2_win),
+                           TIME_BETWEEN_TUTORIAL_MESSAGES),
+            DisplayMessage("If you opponent has almost no military remaining, you can also win the round".format(
+                MAX_TIME_OF_A_ROUND), (team.x1_win, team.x2_win),
+                TIME_BETWEEN_TUTORIAL_MESSAGES)
+        ]
+        for i, relic in enumerate(relics):
+            messages.append(
+                DisplayMessage("This is relic [{}]".format(i + 1),
+                               (relic.x, relic.y),
+                               TIME_BETWEEN_TUTORIAL_MESSAGES))
+        messages.append(
+            DisplayMessage("Good Luck and Have Fun, Player []".format(player.id),
+                           (p.position[0], p.position[1]),
+                           TIME_BETWEEN_TUTORIAL_MESSAGES))
+        display_tutorial = DisplayMessages(messages, enable=True, players=[player.id])
+        scn.add(display_tutorial)
 
+time_tutorial = (len(messages) - 1) * TIME_BETWEEN_TUTORIAL_MESSAGES
+
+messages = []
+offset = int(TIME_TO_TRAIN_UNITS / NUMBER_OF_MESSAGES_OPEN_AREA_COUNTDOWN)
+for n in range(0, NUMBER_OF_MESSAGES_OPEN_AREA_COUNTDOWN - 2):
+    messages.append(
+        DisplayMessage(
+            "You have {} seconds remaining to train your units".format(TIME_TO_TRAIN_UNITS - (n + 1) * offset),
+            None,
+            offset))
+display_open_area_countdown = DisplayMessages(messages, enable=False)
+
+new_round.then_(ActivateMetaTrigger(display_open_area_countdown))
+
+start_first_round = Trigger("start_first_round", enable=True)
+start_first_round.if_(Timer(time_tutorial))
+start_first_round.then_(ActivateTrigger(new_round))
+
+for player in scn.players:
+    player.age = 6
 
 scn.add(new_round)
 scn.add(open_area)
@@ -371,13 +415,13 @@ scn.add(create_haystacks)
 scn.add(remove_haystacks)
 scn.add(create_buildings)
 scn.add(remove_buildings)
-
-for player in scn.players:
-    player.age=6
+scn.add(start_first_round)
+scn.add(display_open_area_countdown)
 
 scn.save(C.game_path_scenario, "age-of-total-war 0.01")
 
-# TODO make tent invincible
-# TODO make auto win if no military or less than 5on fighting area
-# scn.save("Z:/steam/steamapps/common/Age2HD/mods/age of total war/resources/_common/examples",
-#          "age-of-total-war 0.2 [template]")
+# TODO add meta trigger, "messages"
+# TODO make such that we can activate desactivate meta triggers (using a list of activable triggers)
+# TODO add a function to clean an area (with default tile and elevation ?)
+# TODO add a function to remove all units of a player ?
+# TODO add a function to remove all animals

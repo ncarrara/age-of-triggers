@@ -144,6 +144,7 @@ class RemoveObject(Effect):
                          sourcePlayer=player,
                          unit_cons=unit_cons)
 
+
 class RemoveObjectByType(Effect):
     def __init__(self, player, type, x1, x2, y1, y2):
         super().__init__(type=15,
@@ -153,6 +154,7 @@ class RemoveObjectByType(Effect):
                          y2=y2,
                          sourcePlayer=player,
                          unitType=type)
+
 
 class RenameUnit(Effect):
     def __init__(self, name, unit):
@@ -198,18 +200,25 @@ class GiveHeadroom(Effect):
 
 
 class MoveCamera(Effect):
-    def __init__(self,player,x,y):
-        super().__init__(type=16,sourcePlayer=player,x=x,y=y)
+    def __init__(self, player, x, y):
+        super().__init__(type=16, sourcePlayer=player, x=x, y=y)
+
 
 class PayGold(Tribute):
     def __init__(self, player, amount, silent=True):
         super().__init__(player=player, amount=amount, resource=EnumResource.GOLD.value, silent=silent, receive=False)
+
+
 class PayFood(Tribute):
     def __init__(self, player, amount, silent=True):
         super().__init__(player=player, amount=amount, resource=EnumResource.FOOD.value, silent=silent, receive=False)
+
+
 class PayStone(Tribute):
     def __init__(self, player, amount, silent=True):
         super().__init__(player=player, amount=amount, resource=EnumResource.STONE.value, silent=silent, receive=False)
+
+
 class PayWood(Tribute):
     def __init__(self, player, amount, silent=True):
         super().__init__(player=player, amount=amount, resource=EnumResource.WOOD.value, silent=silent, receive=False)
@@ -241,18 +250,49 @@ class ActivateTrigger(Effect):
         super().__init__(type=8, trigger_to_activate=trigger_to_activate)
 
 
+class ActivateMetaTrigger:
+    def __init__(self, meta_trigger):
+        self._triggers = meta_trigger.triggers_to_activate
+        self._i = -1
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        self._i += 1
+        if self._i < len(self._triggers):
+            return ActivateTrigger(self._triggers[self._i])
+        raise StopIteration
+
+
+class DesactivateMetaTrigger:
+    def __init__(self, meta_trigger):
+        self._triggers = meta_trigger.triggers_to_activate
+        self._i = -1
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        self._i += 1
+        if self._i < len(self._triggers):
+            return DesactivateTrigger(self._triggers[self._i])
+        raise StopIteration
+
+
 class MoveObjectToPoint(Effect):
     def __init__(self, player, unit, x, y):
         super().__init__(type=12, sourcePlayer=player, unitIds=[unit.id], x=x, y=y)
 
 
 class DamageObject(Effect):
-    def __init__(self,player,amount,  unit):
-        super().__init__(sourcePlayer=player,type=24,amount=amount,  unitIds=[unit.id])
-class BuffHP(Effect):
-    def __init__(self,player,amount,  unit):
-        super().__init__(sourcePlayer=player,type=27,amount=amount,  unitIds=[unit.id])
+    def __init__(self, player, amount, unit):
+        super().__init__(sourcePlayer=player, type=24, amount=amount, unitIds=[unit.id])
 
+
+class BuffHP(Effect):
+    def __init__(self, player, amount, unit):
+        super().__init__(sourcePlayer=player, type=27, amount=amount, unitIds=[unit.id])
 
 
 class DesactivateTrigger(Effect):
@@ -290,6 +330,6 @@ class ChangeOwnership(Effect):
 
 
 class ChangeUnitOwnership(Effect):
-    def __init__(self, targetPlayer,sourcePlayer,unit):
+    def __init__(self, targetPlayer, sourcePlayer, unit):
         super().__init__(type=18, targetPlayer=targetPlayer,
-                         sourcePlayer=sourcePlayer,unitIds=[unit.id])
+                         sourcePlayer=sourcePlayer, unitIds=[unit.id])

@@ -9,6 +9,9 @@ class MetaTrigger(ABC):
     def setup(self, scenario):
         pass
 
+    def triggers_to_activate(self):
+        return []
+
 
 class EffectGenerator(ABC):
 

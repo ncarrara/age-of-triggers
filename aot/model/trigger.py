@@ -1,4 +1,4 @@
-from aot.model.message import Message
+from collections.abc import Iterable
 
 
 class Trigger:
@@ -12,7 +12,7 @@ class Trigger:
         return self.__conditions
 
     def __init__(self, name="", enable=False, loop=False, make_header=0,
-                 objective=False, description_order=0, id=-1,display_as_objective=0,mute_objectives=0):
+                 objective=False, description_order=0, id=-1, display_as_objective=0, mute_objectives=0):
         """Initialize examples trigger"""
         self.make_header = make_header
         self.id = id
@@ -56,9 +56,16 @@ class Trigger:
         return data
 
     def then_(self, effect):
-        self.__effects.append(effect)
+        if isinstance(effect, Iterable):
+            self.__effects.extend(effect)
+        else:
+            self.__effects.append(effect)
         return self
 
     def if_(self, condition):
-        self.__conditions.append(condition)
+
+        if isinstance(condition, Iterable):
+            self.__effects.extend(condition)
+        else:
+            self.__effects.append(condition)
         return self
