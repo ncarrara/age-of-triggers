@@ -220,6 +220,7 @@ for x in [SPAWN_LENGTH, scn.get_width() - SPAWN_LENGTH - 1]:
 kill_all_military = Trigger("kill all military")
 for p in range(1, 9):
     kill_all_military.then_(RemoveObjectByType(player=p, x1=-1, x2=-1, y2=-1, y1=-1, type=UnitType.MILITARY.value))
+    kill_all_military.then_(RemoveObjectByType(player=p, x1=-1, x2=-1, y2=-1, y1=-1, type=UnitType.MONK_WO_RELIC.value))
 
 set_resource = Trigger("Resources")
 for p in range(1, 9):
