@@ -418,7 +418,7 @@ scn.add(remove_buildings)
 scn.add(start_first_round)
 scn.add(display_open_area_countdown)
 
-scn.save(C.game_path_scenario, "age-of-total-war 0.01")
+scn.save(C.game_path_scenario, "age-of-total-war 0.02")
 
 # TODO add meta trigger, "messages"
 # TODO make such that we can activate desactivate meta triggers (using a list of activable triggers)
