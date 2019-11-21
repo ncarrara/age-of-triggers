@@ -52,7 +52,8 @@ class PlayerUnits:
             int: count of deleted unit IDs (nut units)
         """
         count = 0
-        for key in self.__units.keys():
+        keys = list(self.__units.keys()).copy()
+        for key in keys:
             count += 1
             del self.__units[key]
         return count
@@ -142,7 +143,7 @@ class Units:
 
     def __init__(self):
         self.__playerUnits = [PlayerUnits(i) for i in range(17)]
-        self.__nextID = 0
+        self.__nextID = 1
 
         # Unit.nextID = self.incrementNextID
 

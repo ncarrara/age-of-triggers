@@ -140,7 +140,7 @@ class Compress:
 
         put_bytes(self.scenario.unknown_bytes_after_civs)  # todo default
 
-        put_str16(scenario.original_filename, remove_last=False) # todo default
+        put_str16(scenario.original_filename, remove_last=False)  # todo default
 
         logger.debug("-------------------------------------------------------")
         logger.debug("-------------------------------------------------------")
@@ -347,11 +347,12 @@ class Compress:
 
         put_bytes(scenario.map.unk_before_water_definitions)  # todo default
 
-        put_str16(scenario.map.water_definitions, label="scenario.map.water_definitions",remove_last=False)  # todo default
+        put_str16(scenario.map.water_definitions, label="scenario.map.water_definitions",
+                  remove_last=False)  # todo default
 
         put_bytes(scenario.map.unk_before_empty)  # todo default
 
-        put_str16(scenario.map.empty,label="scenario.map.empty", remove_last=False)  # todo default
+        put_str16(scenario.map.empty, label="scenario.map.empty", remove_last=False)  # todo default
 
         put_bytes(scenario.map.unk_before_w_h)  # todo default
 
@@ -416,11 +417,10 @@ class Compress:
             put_u16(players[i].unk2)  # todo default
             if players[i].unk1 == 2.0:
                 put_bytes(players[i].unk3)  # todo default
-            if players[i].unk2 >0:
+            if players[i].unk2 > 0:
                 put_bytes(players[i].unk4)  # todo default
             put_bytes(players[i].unk5)  # todo default
             put_bytes(players[i].unk6)  # todo default
-
 
         logger.debug("-------------------------------------------------------")
         logger.debug("-------------------------------------------------------")
@@ -430,10 +430,8 @@ class Compress:
         logger.debug("-------------------------------------------------------")
         logger.debug("-------------------------------------------------------")
 
-
         for i in range(0, 9):
             number_of_units = len(players[i].units)
-            print(number_of_units)
             put_u32(number_of_units)
             for unit in players[i].units:
                 put_float(unit.x)
@@ -487,20 +485,19 @@ class Compress:
             for e in range(len(trigger.effects)):
                 effect = trigger.effects[e]
                 put_s32(effect.type)
-                if effect.check is None:
-                    effect.check = 24
                 put_s32(effect.check)
-                put_s32(effect.aiGoal)
+                put_s32(effect.ai_goal)
                 put_s32(effect.amount)
                 put_s32(effect.resource)
                 put_s32(effect.state)
-                put_s32(len(effect.unitIds))  # selected count
-                put_s32(effect.unitId)
-                put_s32(effect.unitName)
+                selected_count = -1 if len(effect.unit_ids) == 0 else len(effect.unit_ids)
+                put_s32(selected_count)  # selected count
+                put_s32(effect.unit_id)
+                put_s32(effect.unit_cons)
                 put_s32(effect.source_player)
                 put_s32(effect.target_player)
                 put_s32(effect.tech)
-                put_s32(effect.stringId)
+                put_s32(effect.string_table_id)
                 put_s32(effect.unknown1)
                 put_s32(effect.time)
                 put_s32(-1 if effect.trigger_to_activate is None else effect.trigger_to_activate.id)
@@ -510,13 +507,19 @@ class Compress:
                 put_s32(effect.y1)
                 put_s32(effect.x2)
                 put_s32(effect.y2)
-                put_s32(effect.unitGroup)
-                put_s32(effect.unitType)
-                put_s32(effect.instructionId)
-                put_s32(effect.unknown2)
-                put_str32(effect.text, "effect.text")
-                put_str32(effect.filename, "effect.filename")
-                for id in effect.unitIds:
+                put_s32(effect.unit_group)
+                put_s32(effect.unit_type)
+                put_s32(effect.panel_location)
+                # put_s32(effect.unknown2)
+                # put_str32(effect.text, "effect.text", remove_last=True)
+                # put_str32(effect.filename, "effect.filename", remove_last=True)
+                put_bytes(effect.unknown3)
+                put_s32(effect.facet)
+                put_s32(effect.unknown4)
+                put_s32(effect.unknown5)
+                put_str32(effect.message, "effect.message", remove_last=True)
+                put_str32(effect.sound_event_name, "effect.sound_event_name", remove_last=True)
+                for id in effect.unit_ids:
                     put_s32(id)
             for i in range(len(trigger.effects)):
                 put_s32(i)
@@ -529,10 +532,10 @@ class Compress:
                 put_s32(condition.check)
                 put_s32(condition.amount)
                 put_s32(condition.resource, "condition.resource")
-                put_s32(condition.unitObject)
+                put_s32(condition.unit_object)
                 put_s32(condition.unitId)
-                put_s32(condition.unitName)
-                put_s32(condition.sourcePlayer)
+                put_s32(condition.unit_cons)
+                put_s32(condition.source_player)
                 put_s32(condition.tech)
                 put_s32(condition.timer)
                 put_s32(condition.unknown1)
@@ -540,11 +543,14 @@ class Compress:
                 put_s32(condition.y1)
                 put_s32(condition.x2)
                 put_s32(condition.y2)
-                put_s32(condition.unitGroup)
-                put_s32(condition.unitType)
-                put_s32(condition.aiSignal)
+                put_s32(condition.unit_group)
+                put_s32(condition.unit_type)
+                put_s32(condition.ai_signal)
                 put_s32(condition.reversed, "condition.reversed")
                 put_s32(condition.unknown2)
+                put_s32(condition.unknown3)
+                put_s32(condition.unknown4)
+                put_s32(condition.unknown5)
             for i in range(len(trigger.conditions)):
                 put_s32(i)
         for i in range(len(triggers)):
@@ -563,9 +569,10 @@ class Compress:
         if scenario.has_embedded_ai_file:
 
             put_u32(self.scenario.number_of_ai_files)
-            for per,file in scenario.ai_files:
-                put_str32(per,remove_last=True)
-                put_str32(file,remove_last=True)
+            for per, file in scenario.ai_files:
+                put_str32(per, remove_last=True)
+                put_str32(file, remove_last=True)
+
 
 # = open('')
 if __name__ == "__main__":

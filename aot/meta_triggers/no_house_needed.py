@@ -15,5 +15,5 @@ class NoHouseNeeded(MetaTrigger):
 
         t.then_(GiveHeadroom(player=self.player, amount=self.population ))
         t.then_(SendChat(player=self.player,
-                         text="No house needed, you have a population capacity of {}".format(self.population)))
+                         message="No house needed, you have a population capacity of {}".format(self.population)))
         scenario.add(t)

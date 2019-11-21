@@ -94,16 +94,6 @@ class Scenario:
         d = Decompress(self, b, path_header, path_decompressed_data)  # load data
 
     def save(self, path, basename, change_timestamp=True):
-        """
-            save examples as scx format
-
-            Args:
-                filename (str, optional): if set, it will create new
-                    examples file, otherwise rewrite current
-
-            Todo:
-                finish this section
-        """
         if change_timestamp:
             from datetime import datetime
             self.timestamp = int(datetime.timestamp(datetime.now()))
@@ -112,7 +102,6 @@ class Scenario:
         self.filename = basename + ".aoe2scenario"
         path = path + "/" + self.filename
         logger.debug("saving  examples at {}".format(path))
-
         Compress(self, path)
 
     def _clear(self, size=None):
@@ -151,6 +140,8 @@ class Scenario:
         self.datasets = [2, 3, 4, 5, 6]
         self.n_datasets = len(self.datasets)
         # self.header_type = header_type
+        self.header_unknown = 2
+        self.author = "Made with Age Of Trigger [by Elwiii]"
         self.unknown1_compressed_header = 1
         self.unknown2_compressed_header = 0
         self.separator_at_compressed_header = b'\x00'

@@ -1,6 +1,4 @@
 {
-  "game_path_scenario":"C:/Users/nicol/Games/Age of Empires 2 DE/76561197999428355/resources/_common/scenario",
-  "temp_path":"tmp/scenario",
-  "test_path_scenario":"../scenarios",
-  "per_path": "../../aot/assets/per"
+  "game_path_scenario":"/home/ncarrara/.local/share/Steam/steamapps/compatdata/813780/pfx/drive_c/users/steamuser/Games/Age of Empires 2 DE/76561197999428355/resources/_common/scenario",
+  "temp_path_scenario":"tmp/scenario"
 }

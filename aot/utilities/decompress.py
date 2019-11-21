@@ -1,3 +1,4 @@
+from aot.model.condition import Condition
 from aot.model.effect import Effect, EffectType
 from aot.model.enums.constants import HT_AOE2_HD, HT_AOE2_DE
 from aot.model.trigger import Trigger
@@ -8,7 +9,7 @@ import time
 import logging
 
 from aot.utilities.decoder import Decoder
-
+import collections
 logger = logging.getLogger(__name__)
 
 
@@ -47,11 +48,11 @@ def deflate(data, compresslevel=9):
 
 class Decompress:
 
-    def __init__(self, scenario, bData, path_header=None,path_decompressed_data=None):
+    def __init__(self, scenario, bData, path_header=None, path_decompressed_data=None):
         self.scenario = scenario
         self.key_counter = 0
-        self.scenario.variables = {}
-        self.scenario.variables_header = {}
+        self.scenario.variables = collections.OrderedDict()
+        self.scenario.variables_header = collections.OrderedDict()
         self.scenario.header_length = self.decompressHeader(bData)
         decompressed = self.unzip(bData[scenario.header_length:])
         self.decompressData(decompressed)
@@ -65,7 +66,7 @@ class Decompress:
             f.write(bData[:scenario.header_length])
             f.close()
 
-    def _read(self, key=None, f=None,header=False,log=True):
+    def _read(self, key=None, f=None, header=False, log=True):
         if header:
             variables = self.scenario.variables_header
         else:
@@ -73,10 +74,10 @@ class Decompress:
         offset = self.decoder.offset()
         var = f()
         if offset in variables:
-            for k,v in variables.items():
-                print(k,v)
+            for k, v in variables.items():
+                print(k, v)
             raise Exception("duplicate offset : {}".format(offset))  # use hash set better
-        variables[offset] = (key,var)
+        variables[offset] = (key, var)
         if log:
             str_var = str(var)
             if len(str_var) > 30:  # and len(str_var) < 100:
@@ -88,25 +89,28 @@ class Decompress:
         d = Decoder(data)
         self.decoder = d
 
-        self.scenario.version = self._read("header_decompressed.examples.version", lambda: d.getAscii(length=4),header=True)
-        length = self._read("header_decompressed.lenght", d.get_s32,header=True)  # header length
-        self.scenario.header_type = self._read("header_decompressed.header_type", d.get_s32,header=True)
+        self.scenario.version = self._read("header_decompressed.examples.version", lambda: d.getAscii(length=4),
+                                           header=True)
+        length = self._read("header_decompressed.lenght", d.get_s32, header=True)  # header length
+        self.scenario.header_type = self._read("header_decompressed.header_type", d.get_s32, header=True)
 
         if self.scenario.header_type not in [HT_AOE2_DE]:
             raise Exception("File format not supported, header type = {}".format(self.scenario.header_type))
 
-        self.scenario.timestamp = self._read("header_decompressed.timestamp", d.get_s32,header=True)
-        self.scenario.instructions = self._read("header_decompressed.instructions", d.get_str32,header=True)
-        self.scenario.unk_constant1 = self._read("header_decompressed.constant1", lambda: d.skip_constant(0),header=True)
-        self.scenario.n_players = self._read("header_decompressed.examples.n_players", d.get_s32,header=True)
-        self.scenario.unk_constant2 = self._read("header_decompressed.constant2", lambda: d.skip_constant(1000),header=True)
-        self.scenario.use_expansion = self._read("header_decompressed.use_expansion", d.get_s32,header=True)
-        n_datasets = self._read("header_decompressed.n_datasets", d.get_s32,header=True)
-        self.scenario.datasets = [self._read("header_decompressed.dataset_{}".format(i), d.get_s32,header=True)
+        self.scenario.timestamp = self._read("header_decompressed.timestamp", d.get_s32, header=True)
+        self.scenario.instructions = self._read("header_decompressed.instructions", d.get_str32, header=True)
+        self.scenario.unk_constant1 = self._read("header_decompressed.constant1", lambda: d.skip_constant(0),
+                                                 header=True)
+        self.scenario.n_players = self._read("header_decompressed.examples.n_players", d.get_s32, header=True)
+        self.scenario.unk_constant2 = self._read("header_decompressed.constant2", lambda: d.skip_constant(1000),
+                                                 header=True)
+        self.scenario.use_expansion = self._read("header_decompressed.use_expansion", d.get_s32, header=True)
+        n_datasets = self._read("header_decompressed.n_datasets", d.get_s32, header=True)
+        self.scenario.datasets = [self._read("header_decompressed.dataset_{}".format(i), d.get_s32, header=True)
                                   for i in range(n_datasets)]
 
-        self.scenario.author = self._read("author", d.get_str32,header=True)
-        self.scenario.header_unknown = self._read("examples.header_unknown", d.get_s32,header=True)
+        self.scenario.author = self._read("author", d.get_str32, header=True)
+        self.scenario.header_unknown = self._read("scenario.header_unknown", d.get_s32, header=True)
         return d.offset()
 
     def unzip(self, bytes):
@@ -143,8 +147,8 @@ class Decompress:
         logger.debug("-------------------------------------------------------")
         logger.debug("-------------------------------------------------------")
         logger.debug("-------------------------------------------------------")
-
-        self.scenario.units.nextID = self._read("units.nextID", d.get_u32)
+        nextID = self._read("units.nextID", d.get_u32)
+        self.scenario.units.nextID = 1 if nextID==0 else nextID
         self.scenario.version2 = self._read("version2", d.get_float)
 
         for i in range(1, 17):
@@ -326,17 +330,20 @@ class Decompress:
         tech_count = d.unpack('I' * 16)
         logger.debug("tech count : {}".format(tech_count))
         for i in range(1, 17):
-            players[i].disabledTechs = [self._read("players[{}].disabledTechs".format(i), d.get_u32) for _ in range(tech_count[i - 1])]
+            players[i].disabledTechs = [self._read("players[{}].disabledTechs".format(i), d.get_u32) for _ in
+                                        range(tech_count[i - 1])]
             logger.debug("P{}={}".format(i, players[i].disabledTechs))
         unit_count = d.unpack('I' * 16)
         logger.debug("unit_count : {}".format(unit_count))
         for i in range(1, 17):
-            players[i].disabledUnits = [self._read("players[{}].disabledUnits".format(i), d.get_u32) for _ in range(unit_count[i - 1])]
+            players[i].disabledUnits = [self._read("players[{}].disabledUnits".format(i), d.get_u32) for _ in
+                                        range(unit_count[i - 1])]
             logger.debug("P{}={}".format(i, players[i].disabledUnits))
         building_count = d.unpack('I' * 16)
         logger.debug("building_count : {}".format(building_count))
         for i in range(1, 17):
-            players[i].disabledBuildings = [self._read("players[{}].disabledBuildings".format(i), d.get_u32) for _ in range(building_count[i - 1])]
+            players[i].disabledBuildings = [self._read("players[{}].disabledBuildings".format(i), d.get_u32) for _ in
+                                            range(building_count[i - 1])]
             logger.debug("P{}={}".format(i, players[i].disabledBuildings))
 
         scenario.unknown1_after_tech = self._read("scenario.unknown1_after_tech", d.get_u32)  # unused
@@ -386,13 +393,13 @@ class Decompress:
         scenario.map.resize(w, h)
 
         for i, tile in enumerate(self.scenario.tiles):
-            tile.type = self._read("tile[{}].type".format(i), d.get_u8,log=False)
-            tile.elevation = self._read("tile[{}].elevation".format(i), d.get_u8,log=False)
-            tile.unknown1 = self._read("tile[{}].unknown1".format(i), d.get_u8,log=False)
-            tile.unknown2 = self._read("tile[{}].unknown2".format(i), d.get_u8,log=False)
-            tile.unknown3 = self._read("tile[{}].unknown3".format(i), d.get_u8,log=False)
-            tile.layer_type = self._read("tile[{}].layer_type".format(i), d.get_u8,log=False)
-            tile.is_layering = self._read("tile[{}].is_layering".format(i), d.get_u8,log=False)  # 0 if yes
+            tile.type = self._read("tile[{}].type".format(i), d.get_u8, log=False)
+            tile.elevation = self._read("tile[{}].elevation".format(i), d.get_u8, log=False)
+            tile.unknown1 = self._read("tile[{}].unknown1".format(i), d.get_u8, log=False)
+            tile.unknown2 = self._read("tile[{}].unknown2".format(i), d.get_u8, log=False)
+            tile.unknown3 = self._read("tile[{}].unknown3".format(i), d.get_u8, log=False)
+            tile.layer_type = self._read("tile[{}].layer_type".format(i), d.get_u8, log=False)
+            tile.is_layering = self._read("tile[{}].is_layering".format(i), d.get_u8, log=False)  # 0 if yes
 
         d.skip_constant(9)  # number of unit sections, N. I've always seen = 9.
 
@@ -442,13 +449,10 @@ class Decompress:
             if players[i].unk1 == 2.0:
                 players[i].unk3 = self._read("players[{}].unk3".format(i), lambda: d.get_bytes(8))
 
-            if players[i].unk2 >0:
+            if players[i].unk2 > 0:
                 players[i].unk4 = self._read("players[{}].unk4".format(i), lambda: d.get_bytes(players[i].unk2 * 44))
             players[i].unk5 = self._read("players[{}].unk5".format(i), lambda: d.get_bytes(7))
             players[i].unk6 = self._read("players[{}].unk6".format(i), lambda: d.get_bytes(4))
-
-
-
 
         logger.debug("-------------------------------------------------------")
         logger.debug("-------------------------------------------------------")
@@ -487,7 +491,7 @@ class Decompress:
         n = self._read("number of triggers".format(i), d.get_u32)  # number of triggers
 
         for id_trigger in range(n):
-
+            logger.debug("-----------trigger {} ----------".format(id_trigger))
             trigger = Trigger()  # TODO compress
             self.scenario.add(trigger)
             trigger.id = id_trigger
@@ -518,118 +522,133 @@ class Decompress:
             trigger.mute_objectives = self._read("trigger[{}].mute_objectives".format(id_trigger), d.get_s8)
             trigger.trigger_description["text"] = \
                 self._read("trigger[{}].trigger_description[\"text\"]".format(id_trigger), d.get_str32)
+
             trigger.name = self._read("trigger[{}].name".format(id_trigger), d.get_str32)
             trigger.short_description["text"] = \
                 self._read("trigger[{}].short_description[\"text\"]".format(id_trigger), d.get_str32)
 
             logger.debug("PROCESSING EFFECTS")
             ne = self._read("number of effect({})".format(id_trigger), d.get_s32)  # number of effects
-            for e in range(ne):
+            for id_effect in range(ne):
+                logger.debug("---------- effect {} -----------".format(id_effect))
                 effect = Effect()
                 trigger.then_(effect)
-                effect.type = self._read("type({}/{})".format(e, id_trigger), d.get_s32)
-                effect.check = self._read("check({}/{})".format(e, id_trigger), d.get_s32)
-                if effect.check != 24:
+                effect.type = self._read("trigger[{}].effect[{}].type".format(id_trigger, id_effect), d.get_s32)
+                effect.check = self._read("trigger[{}].effect[{}].check".format(id_trigger, id_effect), d.get_s32)
+                if effect.check != 46:  # 24 for HD
                     logger.warning(
-                        "check attribut is '{}' for effects but should be 24 for aoe2scenario ???!!".format(check))
-                effect.aiGoal = self._read("trigger[{}].effect[{}].aiGoal".format(id_trigger, e), d.get_s32)
-                effect.amount = self._read("trigger[{}].effect[{}].amount".format(id_trigger, e), d.get_s32)
-                effect.resource = self._read("trigger[{}].effect[{}].resource".format(id_trigger, e), d.get_s32)
-                effect.state = self._read("trigger[{}].effect[{}].state".format(id_trigger, e), d.get_s32)
+                        "check attribut is '{}' for effects but should be 46 for aoe2scenario".format(
+                            effect.check))
+                effect.ai_goal = self._read("trigger[{}].effect[{}].aiGoal".format(id_trigger, id_effect), d.get_s32)
+                effect.amount = self._read("trigger[{}].effect[{}].amount".format(id_trigger, id_effect), d.get_s32)
+                effect.resource = self._read("trigger[{}].effect[{}].resource".format(id_trigger, id_effect), d.get_s32)
+                effect.state = self._read("trigger[{}].effect[{}].state".format(id_trigger, id_effect), d.get_s32)
 
-                effect.selectedCount = self._read("trigger[{}].effect[{}].selectedCount".format(id_trigger, e),
+                effect.selected_count = self._read("trigger[{}].effect[{}].selectedCount".format(id_trigger, id_effect),
+                                                   d.get_s32)
+                effect.unit_id = self._read("trigger[{}].effect[{}].unitId".format(id_trigger, id_effect), d.get_s32)
+
+                effect.unit_cons = self._read("trigger[{}].effect[{}].unit_cons".format(id_trigger, id_effect),
+                                              d.get_s32)
+                effect.source_player = self._read("trigger[{}].effect[{}].sourcePlayer".format(id_trigger, id_effect),
                                                   d.get_s32)
-                effect.unitId = self._read("trigger[{}].effect[{}].unitId".format(id_trigger, e), d.get_s32)
-
-                effect.unitName = self._read("trigger[{}].effect[{}].unitName".format(id_trigger, e), d.get_s32)
-                effect.source_player = self._read("trigger[{}].effect[{}].sourcePlayer".format(id_trigger, e),
-                                                  d.get_s32)
-                effect.target_player = self._read("trigger[{}].effect[{}].targetPlayer".format(id_trigger, e),
+                effect.target_player = self._read("trigger[{}].effect[{}].targetPlayer".format(id_trigger, id_effect),
                                                   d.get_s32)
 
-                effect.tech = self._read("trigger[{}].effect[{}].tech".format(id_trigger, e), d.get_s32)
+                effect.tech = self._read("trigger[{}].effect[{}].tech".format(id_trigger, id_effect), d.get_s32)
 
-                effect.stringId = self._read("trigger[{}].effect[{}].stringId".format(id_trigger, e), d.get_s32)
-                effect.unknown1 = self._read("trigger[{}].effect[{}].unknown1".format(id_trigger, e), d.get_s32)
-                effect.time = self._read("trigger[{}].effect[{}].time".format(id_trigger, e), d.get_s32)
+                effect.string_table_id = self._read(
+                    "trigger[{}].effect[{}].string_table_id".format(id_trigger, id_effect), d.get_s32)
+                effect.unknown1 = self._read("trigger[{}].effect[{}].unknown1".format(id_trigger, id_effect), d.get_s32)
+                effect.time = self._read("trigger[{}].effect[{}].time".format(id_trigger, id_effect), d.get_s32)
 
-                triggerId = self._read("trigger[{}].effect[{}].triggerId".format(id_trigger, e), d.get_s32)
+                triggerId = self._read("trigger[{}].effect[{}].triggerId".format(id_trigger, id_effect), d.get_s32)
                 effect.trigger_to_activate = Trigger(id=triggerId)
-                effect.x = self._read("trigger[{}].effect[{}].x".format(id_trigger, e), d.get_s32)
-                effect.y = self._read("trigger[{}].effect[{}].y".format(id_trigger, e), d.get_s32)
-                effect.x1 = self._read("trigger[{}].effect[{}].x1".format(id_trigger, e), d.get_s32)
+                effect.x = self._read("trigger[{}].effect[{}].x".format(id_trigger, id_effect), d.get_s32)
+                effect.y = self._read("trigger[{}].effect[{}].y".format(id_trigger, id_effect), d.get_s32)
 
-                effect.y1 = self._read("trigger[{}].effect[{}].y1".format(id_trigger, e), d.get_s32)
-                effect.x2 = self._read("trigger[{}].effect[{}].x2".format(id_trigger, e), d.get_s32)
-                effect.y2 = self._read("trigger[{}].effect[{}].y2".format(id_trigger, e), d.get_s32)
-                effect.unitGroup = self._read("trigger[{}].effect[{}].unitGroup".format(id_trigger, e), d.get_s32)
-                effect.unitType = self._read("trigger[{}].effect[{}].unitType".format(id_trigger, e), d.get_s32)
-                effect.instructionId = self._read("trigger[{}].effect[{}].instructionId".format(id_trigger, e),
-                                                  d.get_s32)
+                effect.x1 = self._read("trigger[{}].effect[{}].x1".format(id_trigger, id_effect), d.get_s32)
+                effect.y1 = self._read("trigger[{}].effect[{}].y1".format(id_trigger, id_effect), d.get_s32)
+                effect.x2 = self._read("trigger[{}].effect[{}].x2".format(id_trigger, id_effect), d.get_s32)
+                effect.y2 = self._read("trigger[{}].effect[{}].y2".format(id_trigger, id_effect), d.get_s32)
 
-                effect.unknown2 = self._read("trigger[{}].effect[{}].unknown2".format(id_trigger, e), d.get_s32)
-                effect.text = self._read("trigger[{}].effect[{}].text".format(id_trigger, e), d.get_str32)
-                effect.filename = self._read("trigger[{}].effect[{}].filename".format(id_trigger, e), d.get_str32)
+                effect.unit_group = self._read("trigger[{}].effect[{}].unitGroup".format(id_trigger, id_effect), d.get_s32)
+                effect.unit_type = self._read("trigger[{}].effect[{}].unitType".format(id_trigger, id_effect), d.get_s32)
+                effect.panel_location = self._read("trigger[{}].effect[{}].panel_location".format(id_trigger, id_effect),d.get_s32)
 
-                for k in range(effect.selectedCount):
-                    unitid = self._read("trigger[{}].effect[{}].unitid[{}]".format(id_trigger, e, k), d.get_s32)
-                    effect.unitIds.append(unitid)
+                # effect.unknown2 = self._read("trigger[{}].effect[{}].unknown2".format(id_trigger, id_effect), d.get_s32)
+
+                # effect.text = self._read("trigger[{}].effect[{}].text".format(id_trigger, id_effect), d.get_str32)
+                # effect.filename = self._read("trigger[{}].effect[{}].filename".format(id_trigger, id_effect),d.get_str32)
+                effect.unknown3 = self._read("trigger[{}].effect[{}].unknown3".format(id_trigger, id_effect),lambda: d.get_bytes(80))
+
+                effect.facet = self._read("trigger[{}].effect[{}].facet".format(id_trigger, id_effect), d.get_s32)
+                effect.unknown4 = self._read("trigger[{}].effect[{}].unknown4".format(id_trigger, id_effect), d.get_s32)
+                effect.unknown5 = self._read("trigger[{}].effect[{}].unknown5".format(id_trigger, id_effect), d.get_s32)
+
+                effect.message = self._read("trigger[{}].effect[{}].message".format(id_trigger, id_effect),lambda: d.get_str32(remove_last=True))
+                effect.sound_event_name = self._read("trigger[{}].effect[{}].sound_event_name".format(id_trigger, id_effect),lambda: d.get_str32(remove_last=True))
+                for k in range(effect.selected_count):
+                    unitid = self._read("trigger[{}].effect[{}].unitid[{}]".format(id_trigger, id_effect, k), d.get_s32)
+                    effect.unit_ids.append(unitid)
 
             trigger.effects_order = [self._read(
                 "trigger[{}].effect[{}] order".format(id_trigger, e),
                 d.get_u32) for e in range(ne)]
 
+            # exit()
+
             nc = self._read("trigger[{}].number of conditions".format(id_trigger), d.get_s32)  # number of conditions
             logger.debug("PROCESSING CONDITIONS")
             logger.debug("number of conditions : {}".format(nc))
+            # exit()
+            for id_condition in range(nc):
+                c = Condition()
+                logger.debug("---------- condition {} ----------".format(id_condition))
+                c.type = self._read("trigger[{}].condition[{}].type".format(id_trigger, id_condition), d.get_u32)
+                c.check = self._read("trigger[{}].condition[{}].check".format(id_trigger, id_condition), d.get_s32)
+                if c.check != 21:
+                    logger.warning(
+                        "check attribut is '{}' for conditions but should be 21 for aoe2scenario".format(c.check))
+                c.amount = self._read("trigger[{}].condition[{}].amount".format(id_trigger, id_condition), d.get_s32)
+                c.resource = self._read("trigger[{}].condition[{}].resource".format(id_trigger, id_condition), d.get_s32)
+                c.unit_object = self._read("trigger[{}].condition[{}].unit_object".format(id_trigger, id_condition), d.get_s32)
+                c.unit_id = self._read("trigger[{}].condition[{}].unit_id".format(id_trigger, id_condition), d.get_s32)
+                c.unit_cons = self._read("trigger[{}].condition[{}].unit_cons".format(id_trigger, id_condition), d.get_s32)
+                c.source_player = self._read("trigger[{}].condition[{}].source_player".format(id_trigger, id_condition), d.get_s32)
+                c.tech = self._read("trigger[{}].condition[{}].tech".format(id_trigger, id_condition), d.get_s32)
+                c.timer = self._read("trigger[{}].condition[{}].timer".format(id_trigger, id_condition), d.get_s32)
+                c.unknown1 = self._read("trigger[{}].condition[{}].unknown1".format(id_trigger, id_condition), d.get_s32)
+                c.x1 = self._read("trigger[{}].condition[{}].x1".format(id_trigger, id_condition), d.get_s32)
+                c.y1 = self._read("trigger[{}].condition[{}].y1".format(id_trigger, id_condition), d.get_s32)
+                c.x2 = self._read("trigger[{}].condition[{}].x2".format(id_trigger, id_condition), d.get_s32)
+                c.y2 = self._read("trigger[{}].condition[{}].y2".format(id_trigger, id_condition), d.get_s32)
+                c.unit_group = self._read("trigger[{}].condition[{}].unit_group".format(id_trigger, id_condition), d.get_s32)
+                c.unit_type = self._read("trigger[{}].condition[{}].unit_type".format(id_trigger, id_condition), d.get_s32)
+                c.ai_signal = self._read("trigger[{}].condition[{}].ai_signal".format(id_trigger, id_condition), d.get_s32)
+                c.reversed = self._read("trigger[{}].condition[{}].reversed".format(id_trigger, id_condition), d.get_s32)
+                c.unknown2 = self._read("trigger[{}].condition[{}].unknown2".format(id_trigger, id_condition), d.get_s32)
+                c.unknown3 = self._read("trigger[{}].condition[{}].unknown3".format(id_trigger, id_condition), d.get_s32)
+                c.unknown4 = self._read("trigger[{}].condition[{}].unknown4".format(id_trigger, id_condition), d.get_s32)
+                c.unknown5 = self._read("trigger[{}].condition[{}].unknown5".format(id_trigger, id_condition), d.get_s32)
 
-            for c in range(nc):
-                type_ = self._read("type_({},{})".format(c, id_trigger), d.get_u32)
-                check = self._read("check({},{})".format(c, id_trigger), d.get_s32)
-                amount = self._read("amount({},{})".format(c, id_trigger), d.get_s32)
-                resource = self._read("resource({},{})".format(c, id_trigger), d.get_s32)
-                unitObject = self._read("unitObject({},{})".format(c, id_trigger), d.get_s32)
-                unitId = self._read("unitId({},{})".format(c, id_trigger), d.get_s32)
-                unitName = self._read("unitName({},{})".format(c, id_trigger), d.get_s32)
-                sourcePlayer = self._read("sourcePlayer({},{})".format(c, id_trigger), d.get_s32)
-                tech = self._read("tech({},{})".format(c, id_trigger), d.get_s32)
-                timer = self._read("timer({},{})".format(c, id_trigger), d.get_s32)
-                unknown1 = self._read("unknown1({},{})".format(c, id_trigger), d.get_s32)
-                x1 = self._read("x1({},{})".format(c, id_trigger), d.get_s32)
-                y1 = self._read("y1({},{})".format(c, id_trigger), d.get_s32)
-                x2 = self._read("x2({},{})".format(c, id_trigger), d.get_s32)
-                y2 = self._read("y2({},{})".format(c, id_trigger), d.get_s32)
-                unitGroup = self._read("unitGroup({},{})".format(c, id_trigger), d.get_s32)
-                unitType = self._read("unitType({},{})".format(c, id_trigger), d.get_s32)
-                aiSignal = self._read("aiSignal({},{})".format(c, id_trigger), d.get_s32)
-                reversed = self._read("reversed({},{})".format(c, id_trigger), d.get_s32)
-                unknown2 = self._read("unknown2({},{})".format(c, id_trigger), d.get_s32)
-                triggers[id_trigger].newCondition(
-                    type=type_, check=check, amount=amount,
-                    resource=resource, unitObject=unitObject,
-                    unitId=unitId, unitName=unitName,
-                    sourcePlayer=sourcePlayer, tech=tech,
-                    timer=timer, unknown1=unknown1, x1=x1, y1=y1, x2=x2,
-                    y2=y2, unitGroup=unitGroup,
-                    unitType=unitType, aiSignal=aiSignal, reversed=reversed, unknown2=unknown2
-                )
+                trigger.then_(c)
 
             trigger.conditions_order = [self._read(
                 "trigger[{}].conditions[{}] order".format(id_trigger, c),
                 d.get_u32) for c in range(nc)]
-
         triggers.order = [self._read(
             "triggers.order[{}] order".format(i),
             d.get_u32) for i in range(n)]
 
         # not very well optimized if you ask me
         for id_trigger in scenario.triggers:
-            for e in id_trigger.effects:
-                if e.type == EffectType.ACTIVATE_TRIGGER.value:
-                    if e.trigger_to_activate.id != -1:
+            for id_effect in id_trigger.effects:
+                if id_effect.type == EffectType.ACTIVATE_TRIGGER.value:
+                    if id_effect.trigger_to_activate.id != -1:
                         for tr in scenario.triggers:
-                            if tr.id == e.trigger_to_activate.id:
-                                e.trigger_to_activate = tr
+                            if tr.id == id_effect.trigger_to_activate.id:
+                                id_effect.trigger_to_activate = tr
 
         logger.debug("-------------------------------------------------------")
         logger.debug("-------------------------------------------------------")
@@ -645,7 +664,6 @@ class Decompress:
         if debug.included:
             debug.raw = self._read("debug.raw", lambda: d.get_bytes(396))  # AI DEBUG file
 
-
         scenario.extra_bytes_at_the_end = self._read("scenario.extra_bytes_at_the_end", lambda: d.get_bytes(1024))
 
         scenario.has_embedded_ai_file = self._read("scenario.has_embemded_ai_file", d.get_u8)
@@ -655,13 +673,13 @@ class Decompress:
         if scenario.has_embedded_ai_file:
 
             scenario.number_of_ai_files = self._read(scenario.number_of_ai_files, d.get_u32)
-            scenario.ai_files=[]
+            scenario.ai_files = []
             for i in range(scenario.number_of_ai_files):
-                fileper = self._read("fileper{}".format(i), lambda :d.get_str32(remove_last=True))
-                aifile = self._read("aifile{}".format(i), lambda :d.get_str32(remove_last=True))
-                scenario.ai_files.append((fileper,aifile))
+                fileper = self._read("fileper{}".format(i), lambda: d.get_str32(remove_last=True))
+                aifile = self._read("aifile{}".format(i), lambda: d.get_str32(remove_last=True))
+                scenario.ai_files.append((fileper, aifile))
 
-        #exit()
+        # exit()
 
         if 0 < d.bytes_remaining():
-            raise Exception("it remains {} bytes\n\n{}".format(d.bytes_remaining(),d.get_bytes(d.bytes_remaining())))
+            raise Exception("it remains {} bytes\n\n{}".format(d.bytes_remaining(), d.get_bytes(d.bytes_remaining())))

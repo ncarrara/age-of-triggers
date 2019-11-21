@@ -28,6 +28,8 @@ class UnitConstant(Enum):
     ARMY_TENT_5 = 1200
     GUARD_TOWER = 234
     MILITIA = 74
+    THE_ACCURSED_TOWER = 684
+    KING = 434
 
 
 class UnitGroup(Enum):

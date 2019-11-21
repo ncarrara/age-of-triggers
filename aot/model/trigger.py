@@ -1,5 +1,7 @@
 from collections.abc import Iterable
 
+from aot.model.condition import UnitInArea
+
 
 class Trigger:
 
@@ -23,11 +25,11 @@ class Trigger:
         self.display_as_objective = display_as_objective
         self.mute_objectives = mute_objectives
         self.description_order = description_order  # line number in objectives menu
-        self.short_description = {"text": "", "display_on_screen": 0, "string_table_id": 0}
-        self.trigger_description = {"text": "", "display_as_objective": 0, "string_table_id": 0}
+        self.short_description = {"text": "", "display_on_screen": 0, "string_table_id": -1}
+        self.trigger_description = {"text": "", "display_as_objective": 0, "string_table_id": -1}
         self.__effects = list()
         self.__conditions = list()
-        self.unknowns = [0] * 11
+        self.unknowns = [-1] * 6 + [0] * 5
 
     def __repr__(self):
         name = "TRIGGER: \n"
@@ -57,15 +59,16 @@ class Trigger:
 
     def then_(self, effect):
         if isinstance(effect, Iterable):
+
             self.__effects.extend(effect)
         else:
+
             self.__effects.append(effect)
         return self
 
     def if_(self, condition):
-
         if isinstance(condition, Iterable):
-            self.__effects.extend(condition)
+            self.__conditions.extend(condition)
         else:
-            self.__effects.append(condition)
+            self.__conditions.append(condition)
         return self
