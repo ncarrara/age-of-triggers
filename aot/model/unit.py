@@ -5,7 +5,7 @@ class Unit:
     Attributes:
         x (int): unit X position
         y (int): unit Y position
-        type (int): Unit type
+        unit_cons (int): Unit type
         angle (int): Unit starting angle
         frame (int): Unit starting frame
         inID (int): in which ID is unit garissoned, 4294967295 isn't
@@ -30,7 +30,7 @@ class Unit:
         return self.__owner
 
     def __init__(self, id=None, x=0, y=0, owner=0,
-                 type=0, angle=0, frame=0, inId=-1,
+                 unit_cons=0, angle=0, frame=0, inId=-1,
                  unknown1=2, unknown2=2):
         """Create new unit
 
@@ -39,7 +39,7 @@ class Unit:
             x (int, optional): unit X position, 0
             y (int, optional): unit Y position, 0
             owner (int, optional): Player, who owns this unit, 0
-            type (int, optional): Unit type, 0
+            unit_cons (int, optional): Unit type, 0
             angle (int, optional): Unit starting angle, 0
             frame (int, optional): Unit starting Frame, 0
             inID (int, optional): in which ID is unit garissoned, -1 isn't
@@ -58,7 +58,7 @@ class Unit:
 
         self.__owner, self.x, self.y = owner, x, y
         self.unknown1, self.unknown2 = unknown1, unknown2
-        self.__id, self.type, self.angle = id, type, angle
+        self.__id, self.type, self.angle = id, unit_cons, angle
         self.frame, self.inId = frame, inId
 
     def __repr__(self):

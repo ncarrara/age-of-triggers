@@ -20,8 +20,8 @@ scn = Scenario(size=Size.NORMAL)
 # scn.load(C.game_path_scenario, "template-aotw")
 scn.load_template(Size.NORMAL)
 #
-TIME_TO_TRAIN_UNITS = 340
-NUMBER_OF_MESSAGES_OPEN_AREA_COUNTDOWN = 20
+TIME_TO_TRAIN_UNITS = 150
+NUMBER_OF_MESSAGES_OPEN_AREA_COUNTDOWN = int(TIME_TO_TRAIN_UNITS/10)
 MAX_TIME_OF_A_ROUND = 600
 POPULATION = 750
 WIN_AREA_POSITION_RELATIVE_TO_SPAWN = 15
@@ -35,24 +35,24 @@ SEP_BETWEEN_BUILDING = 5
 NB_OF_COPY_BUILDINGS = 6
 TIME_BETWEEN_TUTORIAL_MESSAGES = 3
 
-if True:
-    TIME_TO_TRAIN_UNITS = 50
-    NUMBER_OF_MESSAGES_OPEN_AREA_COUNTDOWN = 25
-    MAX_TIME_OF_A_ROUND = 20
-    POPULATION = 750
-    WIN_AREA_POSITION_RELATIVE_TO_SPAWN = 15
-    SPAWN_LENGTH = 50
-    GOLD = 7500
-    FOOD = 10000
-    STONE = 0
-    WOOD = 10000
-    NUMBER_OF_WARNING = 10
-    SEP_BETWEEN_BUILDING = 5
-    NB_OF_COPY_BUILDINGS = 6
-    TIME_BETWEEN_TUTORIAL_MESSAGES = 1
-NUMBER_OF_HILLS = 250
+# if True:
+#     TIME_TO_TRAIN_UNITS = 50
+#     NUMBER_OF_MESSAGES_OPEN_AREA_COUNTDOWN = 25
+#     MAX_TIME_OF_A_ROUND = 20
+#     POPULATION = 750
+#     WIN_AREA_POSITION_RELATIVE_TO_SPAWN = 15
+#     SPAWN_LENGTH = 50
+#     GOLD = 7500
+#     FOOD = 10000
+#     STONE = 0
+#     WOOD = 10000
+#     NUMBER_OF_WARNING = 10
+#     SEP_BETWEEN_BUILDING = 5
+#     NB_OF_COPY_BUILDINGS = 6
+#     TIME_BETWEEN_TUTORIAL_MESSAGES = 1
+NUMBER_OF_HILLS = 125
 NUMBER_OF_FOREST = 15
-
+NUMBER_OF_LACS = 15
 
 class Team:
     def __init__(self, name):
@@ -81,12 +81,48 @@ team2.players = [Player(i) for i in range(5, 9)]
 team1.other_team = team2
 team2.other_team = team1
 
+diplomacy = Trigger("Set Diplomacy",enable=1).if_(Timer(5)).then_(SendInstruction(message="Setting Diplomacy 1234 vs 5678",color=Color.ORANGE))
+for team in [team1,team2]:
+    for player in team.players:
+        for target_player in team.other_team.players:
+            diplomacy.then_(ChangeDiplomacy(source_player=player.id,target_player=target_player.id,diplomacy=3))
+        for target_player in team.players:
+            diplomacy.then_(ChangeDiplomacy(source_player=player.id, target_player=target_player.id, diplomacy=0))
+
+scn.add(diplomacy)
+
+HEIGHT_BATTEFIELD = scn.get_height() - 2 * SPAWN_LENGTH
+WIDTH_BATTLE_FIELD = scn.get_width() - 1
+
 # generate terrain
 x_offset = 0
 y_offset = SPAWN_LENGTH
+
+for w in range(NUMBER_OF_LACS):
+    i = np.random.randint(3, WIDTH_BATTLE_FIELD - 3)
+    j = np.random.randint(3, HEIGHT_BATTEFIELD - 3)
+    for _ in range(200):
+        sigma = 4
+        x = min(max(3,int(np.random.normal(i, sigma, 1))),WIDTH_BATTLE_FIELD-3)
+        y = min(max(3,int(np.random.normal(j, sigma, 1))),HEIGHT_BATTEFIELD-3)
+        scn.map.tiles[x+x_offset][y+y_offset].type = EnumTile.WATER_SHALLOW.value
+
+
+
+for i in range(1, WIDTH_BATTLE_FIELD-1):
+    for j in range(1, HEIGHT_BATTEFIELD-1):
+        if np.random.random()>0.9:
+            scn.map.tiles[x_offset + i][y_offset + j].type = EnumTile.PALM_DESERT.value
+
+for i in range(1, WIDTH_BATTLE_FIELD-1):
+    for j in range(1, HEIGHT_BATTEFIELD-1):
+        if np.random.random()>0.9:
+            scn.map.tiles[x_offset + i][y_offset + j].type = EnumTile.FOREST.value
+            scn.units.new(owner=team.players[0].id, x=j+y_offset, y=i+x_offset, unit_cons=UnitConstant.PALM_TREE.value,frame=np.random.randint(1,5))
+
 for hill in range(NUMBER_OF_HILLS):
-    x1 = np.random.randint(0, scn.get_width() - 1)
-    y1 = np.random.randint(0, scn.get_height() - 2 * SPAWN_LENGTH)
+    x1 = np.random.randint(2, WIDTH_BATTLE_FIELD-2)
+    y1 = np.random.randint(2, HEIGHT_BATTEFIELD-2)
     w = 2 + int(np.random.random() * 5)
     h = 2 + int(np.random.random() * 5)
     x2 = min(x1 + w, scn.get_width())
@@ -94,9 +130,11 @@ for hill in range(NUMBER_OF_HILLS):
     print(x1, x2, y1, y2)
     for i in range(x1, x2):
         for j in range(y1, y2):
-            scn.map.tiles[x_offset + i][
-                y_offset + j].elevation = 1  # np.random.randint(1,1) #maybe more but it crashes the game at launch ?
+            scn.map.tiles[x_offset + i][y_offset + j].elevation = 1  # np.random.randint(1,1) #maybe more but it crashes the game at launch ?
             scn.map.tiles[x_offset + i][y_offset + j].type = EnumTile.BLACK_GRASS.value
+            for v in [1,2]:
+                for x,y in [(v,v),(-v,v),(v,-v),(-v,-v)]:
+                    scn.map.tiles[x_offset + i+x][y_offset + j+y].type = EnumTile.BLACK_GRASS.value
 
 
 for x in list(range(0, int(SPAWN_LENGTH))) + list(range(scn.get_width() - int(SPAWN_LENGTH), scn.get_width())):
@@ -117,11 +155,11 @@ relics = []
 for r in range(1, 4):
     x = int(scn.get_width() / 2)
     y = int(r * (scn.get_height() / 4))
-    relic = scn.units.new(owner=0, x=x, y=y, type=UnitConstant.RELIC_CART.value)
+    relic = scn.units.new(owner=0, x=x, y=y, unit_cons=UnitConstant.RELIC_CART.value)
     relic.reset_position = (x, y)
     relics.append(relic)
     for player in range(1, 9):
-        scn.units.new(owner=player, x=x, y=y, type=UnitConstant.MAP_REVEAL.value)
+        scn.units.new(owner=player, x=x, y=y, unit_cons=UnitConstant.MAP_REVEAL.value)
 
 create_kings = Trigger("create kings").if_(Timer(10))
 scn.add(create_kings)
@@ -140,21 +178,21 @@ create_kings.then_(CreateObject(unit_cons=UnitConstant.HAY_STACK.value, player=0
 
 def create_win_area(x, y, sep=4, team=None):
     for unit_constant in [UnitConstant.FLAG_A.value]:
-        uns = [scn.units.new(owner=team.players[0].id, x=x, y=y, type=unit_constant),
-               scn.units.new(owner=team.players[1].id, x=x + sep, y=y + sep, type=unit_constant),
-               scn.units.new(owner=team.players[2].id, x=x, y=y + sep, type=unit_constant),
-               scn.units.new(owner=team.players[3].id, x=x + sep, y=y, type=unit_constant)]
+        uns = [scn.units.new(owner=team.players[0].id, x=x, y=y, unit_cons=unit_constant),
+               scn.units.new(owner=team.players[1].id, x=x + sep, y=y + sep, unit_cons=unit_constant),
+               scn.units.new(owner=team.players[2].id, x=x, y=y + sep, unit_cons=unit_constant),
+               scn.units.new(owner=team.players[3].id, x=x + sep, y=y, unit_cons=unit_constant)]
 
     for unit_constant in [UnitConstant.KING.value]:
-        uns = [scn.units.new(owner=team.players[0].id, x=x + 1, y=y + 1, type=unit_constant),
-               scn.units.new(owner=team.players[1].id, x=x + sep - 1, y=y + sep - 1, type=unit_constant),
-               scn.units.new(owner=team.players[2].id, x=x + 1, y=y + sep - 1, type=unit_constant),
-               scn.units.new(owner=team.players[3].id, x=x + sep - 1, y=y + 1, type=unit_constant)]
+        uns = [scn.units.new(owner=team.players[0].id, x=x + 1, y=y + 1, unit_cons=unit_constant),
+               scn.units.new(owner=team.players[1].id, x=x + sep - 1, y=y + sep - 1, unit_cons=unit_constant),
+               scn.units.new(owner=team.players[2].id, x=x + 1, y=y + sep - 1, unit_cons=unit_constant),
+               scn.units.new(owner=team.players[3].id, x=x + sep - 1, y=y + 1, unit_cons=unit_constant)]
 
     for tile in scn.map.tiles.getArea(x, y, x + sep - 1, y + sep - 1):
         tile.type = EnumTile.ROCK.value
     for player in range(1, 9):
-        scn.units.new(owner=player, x=x + int(sep / 2), y=y + int(sep / 2), type=UnitConstant.MAP_REVEAL.value)
+        scn.units.new(owner=player, x=x + int(sep / 2), y=y + int(sep / 2), unit_cons=UnitConstant.MAP_REVEAL.value)
 
     for ir, relic in enumerate(relics):
         create_flag_score = Trigger("create_flag_score for relic {} ({})".format(ir, team.name), enable=True)
@@ -450,7 +488,7 @@ start_first_round.then_(ActivateTrigger(new_round))
 for player in scn.players:
     player.age = 6
 
-scn.save(C.game_path_scenario, "age-of-total-war [alpha 0.0]")
+scn.save(C.game_path_scenario, "age-of-total-war [alpha 0.004]")
 
 # TODO add meta trigger, "messages"
 # TODO make such that we can activate desactivate meta triggers (using a list of activable triggers)

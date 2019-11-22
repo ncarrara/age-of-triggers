@@ -30,6 +30,8 @@ class UnitConstant(Enum):
     MILITIA = 74
     THE_ACCURSED_TOWER = 684
     KING = 434
+    PINE_TREE = 350
+    PALM_TREE = 351
 
 
 class UnitGroup(Enum):

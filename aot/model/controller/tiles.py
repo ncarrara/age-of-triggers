@@ -1,7 +1,8 @@
 from itertools import chain
 
 from aot.model.tile import Tile
-
+import logging
+logger = logging.getLogger(__name__)
 
 class Tiles:
 
@@ -40,9 +41,11 @@ class Tiles:
             (list): tiles
         """
         if (r < 0):
-            raise ValueError("r can't be < 0")
+            logger.warning("r can't be < 0")
+            r=0
         if (r > self._width - 1):
-            raise ValueError("r can't be > map width")
+            logger.warning("r can't be > map width")
+            r= self._width - 1
         return self._tiles[r]
 
     def __iter__(self):

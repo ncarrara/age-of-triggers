@@ -5,6 +5,9 @@ class EnumTile(Enum):
     ROCK=40
     LEAVES=5
     BLACK_GRASS=41
+    PALM_DESERT=13
+    FOREST=10
+    WATER_SHALLOW=1
 
 # TODO
 eTile = {

@@ -240,6 +240,10 @@ class CreateObject(Effect):
         super().__init__(type=11, source_player=player, x=x, y=y, unit_cons=unit_cons)
 
 
+class ChangeDiplomacy(Effect):
+    def __init__(self,source_player,target_player,diplomacy):
+        super().__init__(type=1,source_player=source_player,target_player=target_player,state=diplomacy)
+
 class ChangeOwnership(Effect):
     def __init__(self, target_player=0, unit_cons=-1, unit_group=-1, unit_type=-1,
                  unit_ids=None, source_player=-1, x1=-1, y1=-1, x2=-1, y2=-1):
