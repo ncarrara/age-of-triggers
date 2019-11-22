@@ -61,17 +61,17 @@ class RemoveObject(Effect):
 
 class RemoveObjectByConstant(RemoveObject):
     def __init__(self, player, unit_cons, x1=-1, x2=-1, y1=-1, y2=-1):
-        super().__init__(x1=x1, x2=x2, y1=y1, y2=y2, player=player, unit_cons=unit_cons)
+        super().__init__(x1=x1, x2=x2, y1=y1, y2=y2, player=player, unit_cons=unit_cons, unit_type=-1, unit_group=-1,unit_id=-1)
 
 
 class RemoveObjectByType(RemoveObject):
     def __init__(self, player, unit_type, x1=-1, x2=-1, y1=-1, y2=-1):
-        super().__init__(x1=x1, x2=x2, y1=y1, y2=y2, player=player, unit_type=unit_type)
+        super().__init__(x1=x1, x2=x2, y1=y1, y2=y2, player=player, unit_type=unit_type, unit_cons=-1, unit_group=-1,unit_id=-1)
 
 
 class RemoveObjectByGroup(RemoveObject):
     def __init__(self, player, unit_group, x1=-1, x2=-1, y1=-1, y2=-1):
-        super().__init__(x1=x1, x2=x2, y1=y1, y2=y2, player=player, unit_group=unit_group)
+        super().__init__(x1=x1, x2=x2, y1=y1, y2=y2, player=player, unit_group=unit_group, unit_type=-1, unit_cons=-1,unit_id=-1)
 
 
 class RenameByUnit(Effect):

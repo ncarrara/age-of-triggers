@@ -1,5 +1,5 @@
 from aot.model.condition import Condition
-from aot.model.effect import Effect, EffectType
+from aot.model.effect import Effect
 from aot.model.enums.constants import HT_AOE2_HD, HT_AOE2_DE
 from aot.model.trigger import Trigger
 from aot.utilities import *

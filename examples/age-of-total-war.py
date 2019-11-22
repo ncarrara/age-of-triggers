@@ -35,21 +35,21 @@ SEP_BETWEEN_BUILDING = 5
 NB_OF_COPY_BUILDINGS = 6
 TIME_BETWEEN_TUTORIAL_MESSAGES = 3
 
-# if True:
-#     TIME_TO_TRAIN_UNITS = 100
-#     NUMBER_OF_MESSAGES_OPEN_AREA_COUNTDOWN = 50
-#     MAX_TIME_OF_A_ROUND = 20
-#     POPULATION = 750
-#     WIN_AREA_POSITION_RELATIVE_TO_SPAWN = 15
-#     SPAWN_LENGTH = 50
-#     GOLD = 7500
-#     FOOD = 10000
-#     STONE = 0
-#     WOOD = 10000
-#     NUMBER_OF_WARNING = 10
-#     SEP_BETWEEN_BUILDING = 5
-#     NB_OF_COPY_BUILDINGS = 6
-#     TIME_BETWEEN_TUTORIAL_MESSAGES = 1
+if True:
+    TIME_TO_TRAIN_UNITS = 50
+    NUMBER_OF_MESSAGES_OPEN_AREA_COUNTDOWN = 25
+    MAX_TIME_OF_A_ROUND = 20
+    POPULATION = 750
+    WIN_AREA_POSITION_RELATIVE_TO_SPAWN = 15
+    SPAWN_LENGTH = 50
+    GOLD = 7500
+    FOOD = 10000
+    STONE = 0
+    WOOD = 10000
+    NUMBER_OF_WARNING = 10
+    SEP_BETWEEN_BUILDING = 5
+    NB_OF_COPY_BUILDINGS = 6
+    TIME_BETWEEN_TUTORIAL_MESSAGES = 1
 NUMBER_OF_HILLS = 250
 NUMBER_OF_FOREST = 15
 
@@ -94,9 +94,10 @@ for hill in range(NUMBER_OF_HILLS):
     print(x1, x2, y1, y2)
     for i in range(x1, x2):
         for j in range(y1, y2):
-            scn.map.tiles[x_offset + i][y_offset + j].elevation = 1 #np.random.randint(1,1) #maybe more
+            scn.map.tiles[x_offset + i][
+                y_offset + j].elevation = 1  # np.random.randint(1,1) #maybe more but it crashes the game at launch ?
             scn.map.tiles[x_offset + i][y_offset + j].type = EnumTile.BLACK_GRASS.value
-# exit()
+
 
 for x in list(range(0, int(SPAWN_LENGTH))) + list(range(scn.get_width() - int(SPAWN_LENGTH), scn.get_width())):
     for y in range(0, scn.get_height() - 1):
@@ -156,23 +157,23 @@ def create_win_area(x, y, sep=4, team=None):
         scn.units.new(owner=player, x=x + int(sep / 2), y=y + int(sep / 2), type=UnitConstant.MAP_REVEAL.value)
 
     for ir, relic in enumerate(relics):
-        create_flag_score = Trigger("create_flag_score", enable=True)
-        remove_flag_score = Trigger("remove_flag_score")
+        create_flag_score = Trigger("create_flag_score for relic {} ({})".format(ir, team.name), enable=True)
+        remove_flag_score = Trigger("remove_flag_score for relic {} ({})".format(ir, team.name))
 
         create_flag_score.if_(UnitInArea(player=0, unit=relic, x1=x, x2=x + sep - 1, y1=y, y2=y + sep - 1))
-        create_flag_score.then_(
-            CreateObject(player=0, x=x + int(sep / 2), y=y + int(sep / 2) - 1 + ir,
-                         unit_cons=UnitConstant.FLAG_B.value))
+        create_flag_score.then_(CreateObject(player=0, x=x + int(sep / 2), y=y + int(sep / 2) - 1 + ir,
+                                             unit_cons=UnitConstant.FLAG_B.value))
+        create_flag_score.then_(SendInstruction("{} captured a relic !".format(team.name)))
         create_flag_score.then_(ActivateTrigger(remove_flag_score))
         scn.add(create_flag_score)
 
         remove_flag_score.if_(Not(UnitInArea(player=0, unit=relic, x1=x, x2=x + sep - 1, y1=y, y2=y + sep - 1)))
-        remove_flag_score.then_(
-            RemoveObjectByConstant(player=0,
-                                   x1=x + int(sep / 2), y1=y + int(sep / 2) - 1 + ir,
-                                   x2=x + int(sep / 2), y2=y + int(sep / 2) - 1 + ir,
-                                   unit_cons=UnitConstant.FLAG_B.value))
+        remove_flag_score.then_(RemoveObjectByConstant(player=0,
+                                                       x1=x + int(sep / 2), y1=y + int(sep / 2) - 1 + ir,
+                                                       x2=x + int(sep / 2), y2=y + int(sep / 2) - 1 + ir,
+                                                       unit_cons=UnitConstant.FLAG_B.value))
         remove_flag_score.then_(ActivateTrigger(create_flag_score))
+        remove_flag_score.then_(SendInstruction("{} lost a relic !".format(team.name)))
         scn.add(remove_flag_score)
 
     team.x1_win = x
@@ -183,25 +184,21 @@ def create_win_area(x, y, sep=4, team=None):
 
 position_win_area = WIN_AREA_POSITION_RELATIVE_TO_SPAWN + int(SPAWN_LENGTH)
 sep_win_area = 5
-create_win_area(x=position_win_area,
-                y=int(scn.get_height() / 2 - sep_win_area / 2),
-                sep=sep_win_area,
-                team=team1)
-create_win_area(x=scn.get_width() - position_win_area - sep_win_area,
-                y=int(scn.get_height() / 2 - sep_win_area / 2),
-                sep=sep_win_area,
-                team=team2)
+create_win_area(x=position_win_area, y=int(scn.get_height() / 2 - sep_win_area / 2),
+                sep=sep_win_area, team=team1)
+create_win_area(x=scn.get_width() - position_win_area - sep_win_area, y=int(scn.get_height() / 2 - sep_win_area / 2),
+                sep=sep_win_area, team=team2)
 
 for team in [team1, team2]:
     for p in team.players:
         x, y = team.x1_win + int(sep_win_area / 2), team.y1_win + int(sep_win_area / 2)
         for ir, relic in enumerate(relics):
-            t = Trigger("move relics({}) P{}".format(relic.id, p.id), enable=True, loop=True)
+            t = Trigger("move relics {} (P{})".format(ir, p.id), enable=True, loop=True)
             t.if_(CaptureUnit(player=p.id, unit=relic))
             t.then_(MoveObjectToPoint(player=p.id, unit=relic, x=x, y=y - 1 + ir))
             scn.add(t)
 
-reset_relics = Trigger("reset relic ({}) ".format(relic.id))
+reset_relics = Trigger("reset relics")
 
 for ir, relic in enumerate(relics):
     reset_relics.then_(ChangeOwnershipByUnit(source_player=0, target_player=0, unit=relic))
@@ -220,6 +217,7 @@ buildings = [UnitConstant.CASTLE.value,
 
 OFFSET = int(((len(buildings) - 1) * SEP_BETWEEN_BUILDING) / 2)
 
+# CREATE OR REMOVE BUILDINGS
 create_buildings = Trigger("create buildings")
 scn.add(create_buildings)
 remove_buildings = Trigger("remove buildings")
@@ -232,19 +230,15 @@ for team in [team1, team2]:
             x = 4
         y = int(((player.id % 4) + 1) * (scn.get_height() / 5))
         player.position = (x, y)
-        # scn.units.new(owner=player, x=x + (2 if player < 5 else -2), y=y, type=UnitConstant.FLAG_B.value)
         for _ in range(NB_OF_COPY_BUILDINGS):
             for i_unit, unit in enumerate(buildings):
-                # if team is team1:
                 y_ = y + i_unit * SEP_BETWEEN_BUILDING - OFFSET
-                # else:
-                #     y_ = y - i_unit * SEP_BETWEEN_BUILDING - OFFSET
-                #     print(y_)
-                #     exit()
                 create_buildings.then_(CreateObject(x=x, y=y_, unit_cons=unit, player=player.id))
-                remove_buildings.then_(RemoveObjectByConstant(player=player.id, unit_cons=unit, x1=x, x2=x, y1=y_, y2=y_))
+                remove_buildings.then_(
+                    RemoveObjectByConstant(player=player.id, unit_cons=unit, x1=x, x2=x, y1=y_, y2=y_))
             x = x + 5
 
+# OPEN FIGHTING AREA
 remove_haystacks = Trigger("open fighting area")
 scn.add(remove_haystacks)
 remove_haystacks.then_((RemoveObjectByConstant(player=PlayerEnum.GAIA.value,
@@ -261,12 +255,14 @@ remove_haystacks.then_((RemoveObjectByConstant(player=PlayerEnum.GAIA.value,
                                                y2=scn.get_height() - 1)))
 remove_haystacks.then_(SendInstruction(message="You may now fight"))
 
+# CLOSE FIGHTING AREA
 create_haystacks = Trigger("create haystacks")
 scn.add(create_haystacks)
 for x in [SPAWN_LENGTH, scn.get_width() - SPAWN_LENGTH - 1]:
     for y in range(0, scn.get_height()):
         create_haystacks.then_(CreateObject(x=x, y=y, unit_cons=UnitConstant.HAY_STACK.value, player=0))
 
+# CLEAN THE BATTLEFIELD OF MILITARY
 kill_all_military = Trigger("kill all military")
 scn.add(kill_all_military)
 
@@ -276,6 +272,7 @@ for p in range(1, 9):
     kill_all_military.then_(RemoveObjectByType(player=p, x1=-1, x2=-1, y2=-1, y1=-1,
                                                unit_type=UnitType.MONK_WO_RELIC.value))  # TODO it actually kill all, why ?
 
+# GIVE RESSOURCES
 set_resource = Trigger("Resources")
 scn.add(set_resource)
 
@@ -289,6 +286,7 @@ for p in range(1, 9):
     set_resource.then_(GiveWood(player=p, amount=WOOD))
     set_resource.then_(GiveFood(player=p, amount=FOOD))
 
+# SET RESSOURCES TO ZERO
 reset_resource = Trigger("reset Resources")
 scn.add(reset_resource)
 for p in range(1, 9):
@@ -297,21 +295,6 @@ for p in range(1, 9):
     reset_resource.then_(PayStone(player=p, amount=10000 if STONE == 0 else STONE))
     reset_resource.then_(PayWood(player=p, amount=WOOD))
 
-new_round = Trigger("new_round", enable=False)
-scn.add(new_round)
-
-new_round.then_(ActivateTrigger(reset_relics))
-for team in [team1, team2]:
-    for p in team.players:
-        new_round.then_(SendChat(player=p.id, color=Color.RED,
-                                 message="<<< TRAIN YOUR UNITS ! YOU HAVE {}s >>>".format(TIME_TO_TRAIN_UNITS)))
-        new_round.then_(MoveCamera(player=p.id, x=p.position[0], y=p.position[1]))
-new_round.then_(ActivateTrigger(set_resource))
-new_round.then_(ActivateTrigger(create_buildings))
-new_round.then_(ActivateTrigger(create_haystacks))
-new_round.then_(ActivateTrigger(kill_all_military))
-new_round.then_(ActivateTrigger(create_kings))
-
 open_area = Trigger("Open Area")
 scn.add(open_area)
 open_area.then_(ActivateTrigger(reset_resource))
@@ -319,106 +302,91 @@ open_area.if_(Timer(TIME_TO_TRAIN_UNITS))
 open_area.then_(ActivateTrigger(remove_haystacks))
 open_area.then_(ActivateTrigger(remove_buildings))
 
+# START A NEW ROUND
+new_round = Trigger("new_round", enable=False)
+scn.add(new_round)
+
+new_round.then_(ActivateTrigger(reset_relics))
+new_round.then_(SendInstruction(color=Color.RED, message="Train your units ! You have {}s".format(TIME_TO_TRAIN_UNITS)))
+for team in [team1, team2]:
+    for p in team.players:
+        new_round.then_(MoveCamera(player=p.id, x=p.position[0], y=p.position[1]))
+new_round.then_(ActivateTrigger(set_resource))
+new_round.then_(ActivateTrigger(create_buildings))
+new_round.then_(ActivateTrigger(create_haystacks))
+new_round.then_(ActivateTrigger(kill_all_military))
+new_round.then_(ActivateTrigger(create_kings))
 new_round.then_(ActivateTrigger(open_area))
 
+# WINNING CONDITIONS
 for team in [team1, team2]:
     have_X_relic = lambda amount: ObjectInArea(source_player=0, unit_cons=UnitConstant.FLAG_B.value, amount=amount,
                                                x1=team.x1_win + int((team.x2_win - team.x1_win) / 2),
                                                x2=team.x1_win + int((team.x2_win - team.x1_win) / 2),
                                                y1=team.y1_win + int((team.y2_win - team.y1_win) / 2) - 1,
                                                y2=team.y1_win + int((team.y2_win - team.y1_win) / 2) + 1)
-    remove_flag = Trigger("remove flags ({})".format(team.name))
-    remove_flag.then_(
-        RemoveObjectByConstant(player=0, unit_cons=UnitConstant.FLAG_B.value,
-                               x1=team.x1_win, x2=team.x2_win, y1=team.y1_win, y2=team.y2_win))
-    remove_flag.then_(SendInstruction(message=team.name + " lost a relic, countdown reset to zero", color=Color.RED))
 
-    # countdowns_triggers = [] # todo with messages
-    # for i in range(0, NUMBER_OF_WARNING):
-    #     time_ = i * int(MAX_TIME_OF_A_ROUND / NUMBER_OF_WARNING)
-    #     t = Trigger("countdown {}s ({})".format(time_, team.name))
-    #     t.if_(Timer(time_))
-    #     t.if_(have_X_relic(2))
-    #     t.then_(SendInstruction(color=Color.RED,
-    #                         message=team.name + " will win in {}s".format(MAX_TIME_OF_A_ROUND - time_)))
-    #     scn.add(t)
-    #     countdowns_triggers.append(t)
-
-    compute_win = Trigger("compute_win ({})".format(team.name))
+    compute_win_2_relics = Trigger("compute_win ({})".format(team.name))
     compute_win_no_military = Trigger("compute_win_no_military ({})".format(team.name))
-    compute_instant_win = Trigger("compute_instant_win ({})".format(team.name))
-
-    # win is less than 5 militry for each player TODO factorise wining conditions
-    compute_win_no_military.if_(Timer(int(MAX_TIME_OF_A_ROUND / 10)))  # REMIOVE THIS, BUT THIS WILL BUG AND AUTOWIN ??
+    compute_instant_win_3_relics = Trigger("compute_instant_win ({})".format(team.name))
+    after_win = Trigger("win {}".format(team.name))
+    after_win.if_(Timer(6))
+    after_win.then_(
+        SendInstruction(message="{} wins this round !".format(team.name, MAX_TIME_OF_A_ROUND), color=Color.RED))
+    after_win.then_(DesactivateTrigger(compute_win_2_relics))
+    after_win.then_(DesactivateTrigger(compute_instant_win_3_relics))
+    after_win.then_(DesactivateTrigger(compute_win_no_military))
+    after_win.then_(ActivateTrigger(new_round))
+    ####################################################################################################################
+    # win is less than 5 militry for each player T
+    compute_win_no_military.if_(Timer(int(MAX_TIME_OF_A_ROUND / 10)))
     for p in team.other_team.players:
         compute_win_no_military.if_(
             Not(ObjectInArea(amount=5, source_player=p.id, unit_type=UnitType.MILITARY.value, x1=0,
                              x2=scn.get_width() - 1, y1=0, y2=scn.get_height() - 1)))
     for p in team.players:
-        # compute_win_no_military.if_(ObjectInArea(amount=5, source_player=p.id, unit_type=UnitType.MILITARY.value,x1=0, x2=0, y1=scn.get_width() - 1, y2=scn.get_height() - 1))
         compute_win_no_military.if_(
             ObjectInArea(amount=5, source_player=p.id, unit_type=UnitType.MILITARY.value, x1=0, x2=scn.get_width() - 1,
                          y1=0, y2=scn.get_height() - 1))
-    compute_win_no_military.then_(ActivateTrigger(remove_flag))
-    for p in range(1, 9):
-        compute_win_no_military.then_(
-            SendChat(player=p, message="<<<<<<<<< {} wins this round >>>>>>>>>>".format(team.name), color=Color.RED))
-    compute_win_no_military.then_(DesactivateTrigger(compute_win))
-    # for t in countdowns_triggers:
-    #     compute_win_no_military.then_(DesactivateTrigger(t))
-    compute_win_no_military.then_(ActivateTrigger(new_round))
-
+    compute_win_no_military.then_(
+        SendInstruction(message="No military left for {} !".format(team.other_team.name), color=Color.RED, time=4))
+    compute_win_no_military.then_(ActivateTrigger(after_win))
+    ####################################################################################################################
+    ####################################################################################################################
     # win after 10 win for anyone with 2 relics
-
-    show_countdown = Trigger("show countdown {}".format(team.name))
-    show_countdown.if_(have_X_relic(2))
-    # for t in countdowns_triggers:
-    #     show_countdown.then_(ActivateTrigger(t))
-
-    compute_win.if_(have_X_relic(2))
-    compute_win.if_(Timer(MAX_TIME_OF_A_ROUND))
-    compute_win.then_(ActivateTrigger(remove_flag))
-    for p in range(1, 9):
-        compute_win.then_(
-            SendChat(player=p, message="<<<<<<<<< {} wins this round >>>>>>>>>>".format(team.name), color=Color.RED))
-
-    compute_win.then_(ActivateTrigger(new_round))
-
+    compute_win_2_relics.if_(have_X_relic(2))
+    compute_win_2_relics.if_(Timer(MAX_TIME_OF_A_ROUND))
+    compute_win_2_relics.then_(
+        SendInstruction(message="{} captured 2 relics after {}s !)".format(team.name, MAX_TIME_OF_A_ROUND),
+                        color=Color.RED, time=4))
+    compute_win_2_relics.then_(ActivateTrigger(after_win))
+    ####################################################################################################################
+    ####################################################################################################################
     # instant win if 3 relics
-    compute_instant_win.if_(ObjectInArea(source_player=0, unit_cons=UnitConstant.FLAG_B.value, amount=3,
-                                         x1=team.x1_win + int((team.x2_win - team.x1_win) / 2),
-                                         x2=team.x1_win + int((team.x2_win - team.x1_win) / 2),
-                                         y1=team.y1_win + int((team.y2_win - team.y1_win) / 2) - 1,
-                                         y2=team.y1_win + int((team.y2_win - team.y1_win) / 2) + 1))
+    compute_instant_win_3_relics.if_(ObjectInArea(source_player=0, unit_cons=UnitConstant.FLAG_B.value, amount=3,
+                                                  x1=team.x1_win + int((team.x2_win - team.x1_win) / 2),
+                                                  x2=team.x1_win + int((team.x2_win - team.x1_win) / 2),
+                                                  y1=team.y1_win + int((team.y2_win - team.y1_win) / 2) - 1,
+                                                  y2=team.y1_win + int((team.y2_win - team.y1_win) / 2) + 1))
 
-    compute_instant_win.then_(ActivateTrigger(remove_flag))
-    for p in range(1, 9):
-        compute_instant_win.then_(
-            SendChat(player=p, message="<<<<<<<<< {} wins this round >>>>>>>>>>".format(team.name), color=Color.RED))
-    compute_instant_win.then_(DesactivateTrigger(compute_win))
-    # for t in countdowns_triggers:
-    #     compute_instant_win.then_(DesactivateTrigger(t))
-    compute_instant_win.then_(ActivateTrigger(new_round))
-
-    open_area.then_(ActivateTrigger(compute_win))
-    open_area.then_(ActivateTrigger(show_countdown))
-    open_area.then_(ActivateTrigger(compute_instant_win))
+    compute_instant_win_3_relics.then_(
+        SendInstruction(message="{} captured 3 relics !".format(team.name), color=Color.RED, time=4))
+    compute_instant_win_3_relics.then_(ActivateTrigger(after_win))
+    ####################################################################################################################
+    open_area.then_(ActivateTrigger(compute_win_2_relics))
+    open_area.then_(ActivateTrigger(compute_instant_win_3_relics))
     open_area.then_(ActivateTrigger(compute_win_no_military))
 
-    remove_flag.then_(DesactivateTrigger(compute_win))
-    # for t in countdowns_triggers:
-    #     remove_flag.then_(DesactivateTrigger(t))
-
-    scn.add(remove_flag)
-    scn.add(compute_win)
-    scn.add(compute_instant_win)
+    scn.add(after_win)
+    scn.add(compute_win_2_relics)
+    scn.add(compute_instant_win_3_relics)
     scn.add(compute_win_no_military)
-    scn.add(show_countdown)
 
 for player in range(1, 9):
     metatrigger = NoHouseNeeded(player=player, population=POPULATION)
     scn.add(metatrigger)
 
+# TUTORIAL
 for team in [team1, team2]:
     for player in team.players:
         offset = 0
