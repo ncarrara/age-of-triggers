@@ -401,12 +401,7 @@ for team in [team1, team2]:
     ####################################################################################################################
     ####################################################################################################################
     # instant win if 3 relics
-    compute_instant_win_3_relics.if_(ObjectInArea(source_player=0, unit_cons=UnitConstant.FLAG_B.value, amount=3,
-                                                  x1=team.x1_win + int((team.x2_win - team.x1_win) / 2),
-                                                  x2=team.x1_win + int((team.x2_win - team.x1_win) / 2),
-                                                  y1=team.y1_win + int((team.y2_win - team.y1_win) / 2) - 1,
-                                                  y2=team.y1_win + int((team.y2_win - team.y1_win) / 2) + 1))
-
+    compute_instant_win_3_relics.if_(have_X_relic(3))
     compute_instant_win_3_relics.then_(
         SendInstruction(message="{} captured 3 relics !".format(team.name), color=Color.RED, time=4))
     compute_instant_win_3_relics.then_(ActivateTrigger(after_win))
@@ -455,7 +450,7 @@ for team in [team1, team2]:
             DisplayMessage("Good Luck and Have Fun, Player [{}]".format(player.id),
                            (player.position[0], player.position[1]),
                            offset))
-        display_tutorial = DisplayMessages(messages, enable=True, players=[player.id])
+        display_tutorial = DisplayMessages(messages, enable=True, players=[player.id],as_instruction=True)
         scn.add(display_tutorial)
 
 time_tutorial = offset
@@ -476,10 +471,11 @@ display_open_area_countdown = DisplayMessages(messages, enable=False, name="trai
 scn.add(display_open_area_countdown)
 
 new_round.then_(ActivateMetaTrigger(display_open_area_countdown))
-t = Trigger("warning from now on").if_(Timer(MAX_TIME_OF_A_ROUND)).then_(
+warning_from_now_on = Trigger("warning from now on").if_(Timer(MAX_TIME_OF_A_ROUND)).then_(
     SendInstruction(message="<<<< From now on, the first team with two relics wins the round >>>>", color=Color.RED))
-scn.add(t)
-open_area.then_(ActivateTrigger(t))
+scn.add(warning_from_now_on)
+open_area.then_(ActivateTrigger(warning_from_now_on))
+new_round.then_(DesactivateTrigger(warning_from_now_on))
 start_first_round = Trigger("start_first_round", enable=True)
 scn.add(start_first_round)
 start_first_round.if_(Timer(time_tutorial))
@@ -488,7 +484,7 @@ start_first_round.then_(ActivateTrigger(new_round))
 for player in scn.players:
     player.age = 6
 
-scn.save(C.game_path_scenario, "age-of-total-war [alpha 0.004]")
+scn.save(C.game_path_scenario, "age-of-total-war [alpha 0.005]")
 
 # TODO add meta trigger, "messages"
 # TODO make such that we can activate desactivate meta triggers (using a list of activable triggers)

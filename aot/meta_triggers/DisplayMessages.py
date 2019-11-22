@@ -2,14 +2,14 @@ from collections import namedtuple
 
 from aot.meta_triggers.metatrigger import MetaTrigger
 from aot.model.condition import Timer
-from aot.model.effect import MoveCamera, SendChat, ActivateTrigger
+from aot.model.effect import MoveCamera, SendChat, ActivateTrigger, SendInstruction
 from aot.model.trigger import Trigger
 
 DisplayMessage = namedtuple("DisplayMessage", ["text", "camera", "timer"])
 
 
 class DisplayMessages(MetaTrigger):
-    def __init__(self, messages, enable=True, name="DisplayMessages", players=range(1, 9)):
+    def __init__(self, messages, enable=True, name="DisplayMessages", players=range(1, 9),as_instruction=False):
         super().__init__()
         self._messages = messages
         self._triggers = None
@@ -25,7 +25,10 @@ class DisplayMessages(MetaTrigger):
                 if camera is not None:
                     x, y = camera
                     t.then_(MoveCamera(player, x, y))
-                t.then_(SendChat(player=player, message=message))
+                if as_instruction:
+                    t.then_(SendInstruction(message=message,time=3))
+                else:
+                    t.then_(SendChat(player=player, message=message))
                 p_triggers.append(t)
 
             # for i in range(len(p_triggers) - 1):
