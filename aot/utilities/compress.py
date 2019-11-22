@@ -491,7 +491,7 @@ class Compress:
                 put_s32(effect.resource)
                 put_s32(effect.state)
                 selected_count = -1 if len(effect.unit_ids) == 0 else len(effect.unit_ids)
-                put_s32(selected_count)  # selected count
+                put_s32(selected_count)
                 put_s32(effect.unit_id)
                 put_s32(effect.unit_cons)
                 put_s32(effect.source_player)
@@ -510,9 +510,6 @@ class Compress:
                 put_s32(effect.unit_group)
                 put_s32(effect.unit_type)
                 put_s32(effect.panel_location)
-                # put_s32(effect.unknown2)
-                # put_str32(effect.text, "effect.text", remove_last=True)
-                # put_str32(effect.filename, "effect.filename", remove_last=True)
                 put_bytes(effect.unknown3)
                 put_s32(effect.facet)
                 put_s32(effect.unknown4)

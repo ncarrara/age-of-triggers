@@ -168,10 +168,10 @@ def create_win_area(x, y, sep=4, team=None):
 
         remove_flag_score.if_(Not(UnitInArea(player=0, unit=relic, x1=x, x2=x + sep - 1, y1=y, y2=y + sep - 1)))
         remove_flag_score.then_(
-            RemoveObject(player=0,
-                         x1=x + int(sep / 2), y1=y + int(sep / 2) - 1 + ir,
-                         x2=x + int(sep / 2), y2=y + int(sep / 2) - 1 + ir,
-                         unit_cons=UnitConstant.FLAG_B.value))
+            RemoveObjectByConstant(player=0,
+                                   x1=x + int(sep / 2), y1=y + int(sep / 2) - 1 + ir,
+                                   x2=x + int(sep / 2), y2=y + int(sep / 2) - 1 + ir,
+                                   unit_cons=UnitConstant.FLAG_B.value))
         remove_flag_score.then_(ActivateTrigger(create_flag_score))
         scn.add(remove_flag_score)
 
@@ -204,7 +204,7 @@ for team in [team1, team2]:
 reset_relics = Trigger("reset relic ({}) ".format(relic.id))
 
 for ir, relic in enumerate(relics):
-    reset_relics.then_(ChangeUnitOwnership(sourcePlayer=0, targetPlayer=0, unit=relic))
+    reset_relics.then_(ChangeOwnershipByUnit(source_player=0, target_player=0, unit=relic))
     reset_relics.then_(MoveObjectToPoint(player=0, unit=relic, x=relic.reset_position[0], y=relic.reset_position[1]))
 
 scn.add(reset_relics)
@@ -242,23 +242,23 @@ for team in [team1, team2]:
                 #     print(y_)
                 #     exit()
                 create_buildings.then_(CreateObject(x=x, y=y_, unit_cons=unit, player=player.id))
-                remove_buildings.then_(RemoveObject(player=player.id, unit_cons=unit, x1=x, x2=x, y1=y_, y2=y_))
+                remove_buildings.then_(RemoveObjectByConstant(player=player.id, unit_cons=unit, x1=x, x2=x, y1=y_, y2=y_))
             x = x + 5
 
 remove_haystacks = Trigger("open fighting area")
 scn.add(remove_haystacks)
-remove_haystacks.then_((RemoveObject(player=PlayerEnum.GAIA.value,
-                                     unit_cons=UnitConstant.HAY_STACK.value,
-                                     x1=int(SPAWN_LENGTH),
-                                     x2=int(SPAWN_LENGTH),
-                                     y1=0,
-                                     y2=scn.get_width() - 1)))
-remove_haystacks.then_((RemoveObject(player=PlayerEnum.GAIA.value,
-                                     unit_cons=UnitConstant.HAY_STACK.value,
-                                     x1=scn.get_width() - (int(SPAWN_LENGTH) + 1),
-                                     x2=scn.get_width() - (int(SPAWN_LENGTH) + 1),
-                                     y1=0,
-                                     y2=scn.get_height() - 1)))
+remove_haystacks.then_((RemoveObjectByConstant(player=PlayerEnum.GAIA.value,
+                                               unit_cons=UnitConstant.HAY_STACK.value,
+                                               x1=int(SPAWN_LENGTH),
+                                               x2=int(SPAWN_LENGTH),
+                                               y1=0,
+                                               y2=scn.get_width() - 1)))
+remove_haystacks.then_((RemoveObjectByConstant(player=PlayerEnum.GAIA.value,
+                                               unit_cons=UnitConstant.HAY_STACK.value,
+                                               x1=scn.get_width() - (int(SPAWN_LENGTH) + 1),
+                                               x2=scn.get_width() - (int(SPAWN_LENGTH) + 1),
+                                               y1=0,
+                                               y2=scn.get_height() - 1)))
 remove_haystacks.then_(SendInstruction(message="You may now fight"))
 
 create_haystacks = Trigger("create haystacks")
@@ -272,9 +272,9 @@ scn.add(kill_all_military)
 
 for p in range(1, 9):
     kill_all_military.then_(RemoveObjectByType(player=p, x1=-1, x2=-1, y2=-1, y1=-1,
-                                               type=UnitType.MILITARY.value))  # TODO it actually kill all, why ?
+                                               unit_type=UnitType.MILITARY.value))  # TODO it actually kill all, why ?
     kill_all_military.then_(RemoveObjectByType(player=p, x1=-1, x2=-1, y2=-1, y1=-1,
-                                               type=UnitType.MONK_WO_RELIC.value))  # TODO it actually kill all, why ?
+                                               unit_type=UnitType.MONK_WO_RELIC.value))  # TODO it actually kill all, why ?
 
 set_resource = Trigger("Resources")
 scn.add(set_resource)
@@ -329,8 +329,8 @@ for team in [team1, team2]:
                                                y2=team.y1_win + int((team.y2_win - team.y1_win) / 2) + 1)
     remove_flag = Trigger("remove flags ({})".format(team.name))
     remove_flag.then_(
-        RemoveObject(player=0, unit_cons=UnitConstant.FLAG_B.value,
-                     x1=team.x1_win, x2=team.x2_win, y1=team.y1_win, y2=team.y2_win))
+        RemoveObjectByConstant(player=0, unit_cons=UnitConstant.FLAG_B.value,
+                               x1=team.x1_win, x2=team.x2_win, y1=team.y1_win, y2=team.y2_win))
     remove_flag.then_(SendInstruction(message=team.name + " lost a relic, countdown reset to zero", color=Color.RED))
 
     # countdowns_triggers = [] # todo with messages

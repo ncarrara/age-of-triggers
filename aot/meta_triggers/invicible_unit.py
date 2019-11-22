@@ -1,5 +1,5 @@
 from aot.meta_triggers.metatrigger import MetaTrigger
-from aot.model.effect import DamageObject, BuffHP, DamageObjectByUnitConstant, BuffHPByUnitConstant
+from aot.model.effect import DamageObject, BuffHPByUnit, DamageObjectByConstant, BuffHPByConstant
 from aot.model.trigger import Trigger
 
 
@@ -12,15 +12,15 @@ class InvicibleUnit(MetaTrigger):
         if self.unit_cons is None:
             self.t = Trigger("make unit {} invisible".format(self.unit.id), enable=True)
             self.t.then_(DamageObject(amount=self.unit_hp, unit=self.unit, player=self.player))
-            self.t.then_(BuffHP(amount=-self.unit_hp, unit=self.unit, player=self.player))
-            self.t.then_(BuffHP(amount=self.unit_hp, unit=self.unit, player=self.player))
+            self.t.then_(BuffHPByUnit(amount=-self.unit_hp, unit=self.unit, player=self.player))
+            self.t.then_(BuffHPByUnit(amount=self.unit_hp, unit=self.unit, player=self.player))
             self.t.then_(DamageObject(amount=-self.unit_hp, unit=self.unit, player=self.player))
         else:
             self.t = Trigger("make unit {} invisible".format(self.unit_cons), enable=True)
-            self.t.then_(DamageObjectByUnitConstant(amount=self.unit_hp, unit_cons=self.unit_cons, player=self.player))
-            self.t.then_(BuffHPByUnitConstant(amount=-self.unit_hp, unit_cons=self.unit_cons, player=self.player))
-            self.t.then_(BuffHPByUnitConstant(amount=self.unit_hp, unit_cons=self.unit_cons, player=self.player))
-            self.t.then_(DamageObjectByUnitConstant(amount=-self.unit_hp, unit_cons=self.unit_cons, player=self.player))
+            self.t.then_(DamageObjectByConstant(amount=self.unit_hp, unit_cons=self.unit_cons, player=self.player))
+            self.t.then_(BuffHPByConstant(amount=-self.unit_hp, unit_cons=self.unit_cons, player=self.player))
+            self.t.then_(BuffHPByConstant(amount=self.unit_hp, unit_cons=self.unit_cons, player=self.player))
+            self.t.then_(DamageObjectByConstant(amount=-self.unit_hp, unit_cons=self.unit_cons, player=self.player))
 
 
     def setup(self, scenario):
