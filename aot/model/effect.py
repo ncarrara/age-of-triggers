@@ -178,7 +178,7 @@ class ActivateMetaTrigger:
 
 class DesactivateMetaTrigger:
     def __init__(self, meta_trigger):
-        self._triggers = meta_trigger.triggers_to_activate()
+        self._triggers = meta_trigger.triggers_to_deactivate()
         self._i = -1
 
     def __iter__(self):
@@ -230,9 +230,9 @@ class SendChat(Effect):
 
 class SendInstruction(Effect):
 
-    def __init__(self, message, stringId=-1, filename="", color=Color.WHITE, time=10):
+    def __init__(self, message, stringId=-1, filename="", color=Color.WHITE, time=10,panel_location=0,player=0):
         super().__init__(type=20, time=time, stringId=stringId, message=str(color) + message,
-                         filename=filename, source_player=1)  # default source player when adding this effect in editor
+                         filename=filename, source_player=player,panel_location=panel_location)  # default source player when adding this effect in editor
 
 
 class CreateObject(Effect):
