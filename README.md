@@ -8,7 +8,7 @@ It was initially a fork from agescx [https://github.com/dderevjanik/agescx].
 
 How to install:
 
-pip3 install git+https://github.com/ncarrara/aoe2-meta-triggers.git
+pip3 install git+https://github.com/ncarrara/age-of-triggers.git
 
 
 # TODO
