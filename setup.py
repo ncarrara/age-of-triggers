@@ -11,5 +11,7 @@ setup(name='age of triggers',
       packages=['aot',
                 'aot.model',
                 'aot.utilities',
+                'aot.model.enums',
+                'aot.model.controller',
                 'aot.meta_triggers',
                 'aot.examples'])
