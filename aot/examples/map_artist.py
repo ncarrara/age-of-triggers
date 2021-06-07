@@ -1,10 +1,12 @@
-from aot import Scenario, Size
 from PIL import Image, ImageChops, ImageOps
 import PIL
 from PIL import ImageFilter
 
 
 # import scipy
+from aot.model.enums.sizes import Size
+from aot.model.scenario import Scenario
+
 
 def generate_black_and_white_from_png(use_beaches, use_gradients, png_img, path, basename, size=Size.GIANT, rotation=0):
     print(PIL.PILLOW_VERSION)
